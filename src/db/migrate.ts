@@ -8,6 +8,7 @@ import { MIGRATION_004_CREATE_SALES } from '@/db/migrations/004_create_sales';
 import { MIGRATION_005_CREATE_EXPENSES } from '@/db/migrations/005_create_expenses';
 import { MIGRATION_006_ADD_EXPENSE_TITLE } from '@/db/migrations/006_add_expense_title';
 import { MIGRATION_007_CREATE_SYNC_METADATA } from '@/db/migrations/007_create_sync_metadata';
+import { MIGRATION_008_ADD_SUPPLIER_PRICE_TYPE } from '@/db/migrations/008_add_supplier_price_type';
 
 type Migration = {
   version: number;
@@ -43,6 +44,10 @@ const MIGRATIONS: Migration[] = [
     version: 7,
     sql: MIGRATION_007_CREATE_SYNC_METADATA,
   },
+  {
+    version: 8,
+    sql: MIGRATION_008_ADD_SUPPLIER_PRICE_TYPE,
+  },
 ];
 
 export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
@@ -59,8 +64,11 @@ export async function applyMigrations(database: SQLiteDatabase): Promise<void> {
       continue;
     }
 
-    await database.execAsync(migration.sql);
-    await database.execAsync(`PRAGMA user_version = ${migration.version}`);
+    // A migration that stops halfway, such as a table rebuild, rolls back instead of blocking the next launch.
+    await database.withTransactionAsync(async () => {
+      await database.execAsync(migration.sql);
+      await database.execAsync(`PRAGMA user_version = ${migration.version}`);
+    });
     currentVersion = migration.version;
   }
 }

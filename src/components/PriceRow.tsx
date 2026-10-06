@@ -75,6 +75,19 @@ export const PriceRow = memo(function PriceRow({
           />
         </View>
       </View>
+      <FormField
+        label="Supplier price"
+        placeholder="0.00"
+        prefix="₱"
+        suffix={perUnit}
+        hint={priceSinceLabel(prices.supplier, today)}
+        value={inputs.supplier}
+        onChangeText={(value) => onChange(product.id, 'supplier', value)}
+        error={errors?.supplier}
+        keyboardType="decimal-pad"
+        inputMode="decimal"
+        editable={!disabled}
+      />
     </View>
   );
 });

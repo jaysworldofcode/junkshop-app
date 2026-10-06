@@ -4,6 +4,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { DetailRow } from '@/components/DetailRow';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { FigureRow } from '@/components/FigureRow';
+import { ReceiptPrintButton } from '@/components/ReceiptPrintButton';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -79,6 +80,8 @@ function SaleDetailView({ sale }: { sale: SaleDetail }) {
           <Text style={[styles.heroTotal, { color: colors.text }]}>{formatPeso(sale.totalAmount)}</Text>
           <StatusBadge label={payment.label} tone={payment.tone} />
         </View>
+
+        <ReceiptPrintButton kind="sale" id={sale.id} />
 
         <SectionCard title="Ticket">
           <DetailRow label="Sale number" value={sale.saleNumber} />

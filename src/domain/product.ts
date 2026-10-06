@@ -32,20 +32,22 @@ export type ProductDraft = {
   isActive: boolean;
   buyPrice: string;
   sellPrice: string;
+  supplierPrice: string;
 };
+
+type PriceDraftField = 'buyPrice' | 'sellPrice' | 'supplierPrice';
 
 export type ProductFieldErrors = {
   name?: string;
   unit?: string;
   code?: string;
   category?: string;
-  buyPrice?: string;
-  sellPrice?: string;
-};
+} & Partial<Record<PriceDraftField, string>>;
 
-const PRICE_DRAFT_FIELDS: Record<PriceType, 'buyPrice' | 'sellPrice'> = {
+export const PRICE_DRAFT_FIELDS: Record<PriceType, PriceDraftField> = {
   buy: 'buyPrice',
   sell: 'sellPrice',
+  supplier: 'supplierPrice',
 };
 
 export function createEmptyProductDraft(): ProductDraft {
@@ -57,6 +59,7 @@ export function createEmptyProductDraft(): ProductDraft {
     isActive: true,
     buyPrice: '',
     sellPrice: '',
+    supplierPrice: '',
   };
 }
 
@@ -69,6 +72,7 @@ export function draftFromProduct(product: Product, prices: ProductPrices): Produ
     isActive: product.isActive,
     buyPrice: prices.buy ? formatPesoInput(prices.buy.price) : '',
     sellPrice: prices.sell ? formatPesoInput(prices.sell.price) : '',
+    supplierPrice: prices.supplier ? formatPesoInput(prices.supplier.price) : '',
   };
 }
 
@@ -131,12 +135,10 @@ export function validateProductDraft(draft: ProductDraft): ProductFieldErrors {
     fieldErrors.category = `Category must be ${PRODUCT_CATEGORY_MAX_LENGTH} characters or fewer.`;
   }
 
-  if (draft.buyPrice.trim().length > 0 && parsePesoInput(draft.buyPrice) === null) {
-    fieldErrors.buyPrice = 'Use a peso amount, like 420 or 420.50.';
-  }
-
-  if (draft.sellPrice.trim().length > 0 && parsePesoInput(draft.sellPrice) === null) {
-    fieldErrors.sellPrice = 'Use a peso amount, like 470 or 470.50.';
+  for (const field of Object.values(PRICE_DRAFT_FIELDS)) {
+    if (draft[field].trim().length > 0 && parsePesoInput(draft[field]) === null) {
+      fieldErrors[field] = 'Use a peso amount, like 420 or 420.50.';
+    }
   }
 
   return fieldErrors;

@@ -11,6 +11,7 @@ import {
   validatePurchaseDraft,
   type PurchaseLineFigures,
   type PurchaseSummary,
+  type SavedPurchase,
 } from '@/domain/purchase';
 import { nowIso } from '@/domain/timestamps';
 import { createPurchaseFormState, purchaseFormReducer, type PurchaseFormAction, type PurchaseFormState } from '@/purchases/purchaseFormReducer';
@@ -21,7 +22,7 @@ export function usePurchaseForm(): {
   dispatch: (action: PurchaseFormAction) => void;
   lineFigures: Record<string, PurchaseLineFigures>;
   summary: PurchaseSummary;
-  save: () => Promise<boolean>;
+  save: () => Promise<SavedPurchase | null>;
 } {
   const database = useSQLiteContext();
   const [state, dispatch] = useReducer(purchaseFormReducer, undefined, () =>
@@ -35,11 +36,11 @@ export function usePurchaseForm(): {
 
   const summary = useMemo(() => summarizePurchase(Object.values(lineFigures)), [lineFigures]);
 
-  const save = useCallback(async (): Promise<boolean> => {
+  const save = useCallback(async (): Promise<SavedPurchase | null> => {
     const errors = validatePurchaseDraft(state.draft);
     if (hasPurchaseErrors(errors)) {
       dispatch({ type: 'setErrors', errors });
-      return false;
+      return null;
     }
 
     dispatch({ type: 'submitStart' });
@@ -47,13 +48,13 @@ export function usePurchaseForm(): {
     try {
       const saved = await savePurchase(database, buildNewPurchase(state.draft, { createId, timestamp: nowIso() }));
       dispatch({ type: 'submitSuccess', saved });
-      return true;
+      return saved;
     } catch (error) {
       dispatch({
         type: 'submitFailure',
         message: error instanceof Error ? error.message : 'Could not save this purchase. Nothing was saved.',
       });
-      return false;
+      return null;
     }
   }, [database, state.draft]);
 

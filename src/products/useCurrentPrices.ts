@@ -22,6 +22,7 @@ function inputsFromPrices(prices: ProductPrices): PriceInputs {
   return {
     buy: prices.buy ? formatPesoInput(prices.buy.price) : '',
     sell: prices.sell ? formatPesoInput(prices.sell.price) : '',
+    supplier: prices.supplier ? formatPesoInput(prices.supplier.price) : '',
   };
 }
 

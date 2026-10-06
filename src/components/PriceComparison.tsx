@@ -14,8 +14,8 @@ type PriceComparisonProps = {
 };
 
 /**
- * Paying above the current buy price, or planning to sell below the current
- * sell price, cuts profit, so those directions are shown as a warning.
+ * Paying above the current buy price, or selling below the current sell or
+ * supplier price, cuts profit, so those directions are shown as a warning.
  */
 export function PriceComparison({ priceType, entered, reference, unit }: PriceComparisonProps) {
   const { colors } = useAppTheme();

@@ -6,6 +6,7 @@ import { DetailRow } from '@/components/DetailRow';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { FigureRow } from '@/components/FigureRow';
 import { PurchaseItemCard } from '@/components/PurchaseItemCard';
+import { ReceiptPrintButton } from '@/components/ReceiptPrintButton';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { StatusBadge } from '@/components/StatusBadge';
@@ -76,6 +77,8 @@ function PurchaseDetailView({ purchase }: { purchase: PurchaseDetail }) {
           <Text style={[styles.heroTotal, { color: colors.text }]}>{formatPeso(purchase.totalAmount)}</Text>
           <StatusBadge label={payment.label} tone={payment.tone} />
         </View>
+
+        <ReceiptPrintButton kind="purchase" id={purchase.id} />
 
         <SectionCard title="Ticket">
           <DetailRow label="Purchase number" value={purchase.purchaseNumber} />

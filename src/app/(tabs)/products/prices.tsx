@@ -12,7 +12,7 @@ import { NO_PRICES } from '@/domain/materialPrice';
 import { useCurrentPrices } from '@/products/useCurrentPrices';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-const EMPTY_INPUTS = { buy: '', sell: '' };
+const EMPTY_INPUTS = { buy: '', sell: '', supplier: '' };
 
 export default function CurrentPricesScreen() {
   const { colors, colorScheme } = useAppTheme();
@@ -50,7 +50,7 @@ export default function CurrentPricesScreen() {
                   body={
                     savedCount === 0
                       ? 'None of the prices were changed.'
-                      : `${savedCount} price${savedCount === 1 ? '' : 's'} changed. The Buy screen uses the new prices now.`
+                      : `${savedCount} price${savedCount === 1 ? '' : 's'} changed. New tickets use them now.`
                   }
                   onDismiss={dismissSaved}
                 />
@@ -58,8 +58,8 @@ export default function CurrentPricesScreen() {
               {loadError ? <ErrorBanner message={loadError} /> : null}
               {saveError ? <ErrorBanner message={saveError} /> : null}
               <Text style={[styles.helper, { color: colors.muted }]}>
-                Prices stay the same until you change them. The Buy screen fills them in when you pick a product.
-                Only the prices you change are saved.
+                Prices stay the same until you change them. Buy fills in on the Buy screen and Sell on the Sell screen.
+                Supplier price is kept for price history. Only the prices you change are saved.
               </Text>
               {isLoading ? <ActivityIndicator color={colors.primary} /> : null}
             </View>

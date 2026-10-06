@@ -11,6 +11,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { StatTile } from '@/components/StatTile';
+import { WarningNotice } from '@/components/WarningNotice';
 import { DEFAULT_DATE_RANGE_PRESET, type DateRangePreset } from '@/constants/dateRange';
 import { FONT_SIZE_CAPTION, FONT_SIZE_DISPLAY, RADIUS_LG, SPACE_XS, SPACE_SM, SPACE_MD, SPACE_LG } from '@/constants/layout';
 import { usePeriodTotals } from '@/dashboard/useDashboard';
@@ -30,6 +31,7 @@ export default function DashboardScreen() {
   const [customRange, setCustomRange] = useState<DateRange>({ from: today, to: today });
   const range = rangeForPreset(preset, today, customRange);
   const { data, isLoading, error } = usePeriodTotals(range);
+  const { data: hasData } = useHasBusinessData();
   const transactionCount = data ? data.purchaseCount + data.saleCount : 0;
 
   return (
@@ -45,6 +47,19 @@ export default function DashboardScreen() {
         </SectionCard>
 
         {error ? <ErrorBanner message={error} /> : null}
+
+        {hasData === false ? (
+          <WarningNotice
+            title="No data on this phone yet"
+            body="Reinstalled the app or moving from another phone? Restore your backup or import an export file."
+          >
+            <PrimaryButton
+              label="Restore or import data"
+              icon={{ ios: 'arrow.uturn.backward', android: 'settings_backup_restore', web: 'settings_backup_restore' }}
+              onPress={() => router.push('/home/data')}
+            />
+          </WarningNotice>
+        ) : null}
 
         <View style={[styles.hero, { backgroundColor: colors.primarySoft }]}>
           <Text style={[styles.heroLabel, { color: colors.muted }]}>{formatRangeLabel(range, today).toUpperCase()}</Text>
@@ -95,6 +110,18 @@ export default function DashboardScreen() {
               variant="outline"
               icon={{ ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' }}
               onPress={() => router.push('/home/reports')}
+            />
+            <PrimaryButton
+              label="Backup & transfer"
+              variant="outline"
+              icon={{ ios: 'arrow.up.arrow.down', android: 'sync_alt', web: 'sync_alt' }}
+              onPress={() => router.push('/home/data')}
+            />
+            <PrimaryButton
+              label="Printer"
+              variant="outline"
+              icon={{ ios: 'printer.fill', android: 'print', web: 'print' }}
+              onPress={() => router.push('/home/printer')}
             />
           </>
         ) : null}

@@ -8,6 +8,7 @@ import { ErrorBanner } from '@/components/ErrorBanner';
 import { FigureRow } from '@/components/FigureRow';
 import { FormField } from '@/components/FormField';
 import { PrimaryButton } from '@/components/PrimaryButton';
+import { PrintStatusNotice } from '@/components/PrintStatusNotice';
 import { ProductPickerModal } from '@/components/ProductPickerModal';
 import { PurchaseLineCard } from '@/components/PurchaseLineCard';
 import { Screen } from '@/components/Screen';
@@ -26,6 +27,7 @@ import { formatPeso, formatPesoInput } from '@/domain/money';
 import type { Product } from '@/domain/product';
 import type { PurchaseLineField } from '@/domain/purchase';
 import { useActiveProducts } from '@/products/useActiveProducts';
+import { useReceiptPrinter } from '@/printing/useReceiptPrinter';
 import { usePurchaseForm } from '@/purchases/usePurchaseForm';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -33,6 +35,7 @@ export default function BuyScrapScreen() {
   const { colors, colorScheme } = useAppTheme();
   const { products, pricesByMaterial, error: productsError } = useActiveProducts();
   const { state, dispatch, lineFigures, summary, save } = usePurchaseForm();
+  const receiptPrinter = useReceiptPrinter('purchase');
   const [pickingLineKey, setPickingLineKey] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const { draft, errors, isSubmitting } = state;
@@ -56,7 +59,7 @@ export default function BuyScrapScreen() {
           key: pickingLineKey,
           materialId: product.id,
           buyPrice: prices.buy ? formatPesoInput(prices.buy.price) : '',
-          supplierPrice: prices.sell ? formatPesoInput(prices.sell.price) : '',
+          supplierPrice: prices.supplier ? formatPesoInput(prices.supplier.price) : '',
         });
       }
       setPickingLineKey(null);
@@ -65,11 +68,12 @@ export default function BuyScrapScreen() {
   );
 
   const onSavePress = useCallback(async () => {
-    const isSaved = await save();
-    if (isSaved) {
+    const saved = await save();
+    if (saved) {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
+      await receiptPrinter.printAfterSave(saved.id);
     }
-  }, [save]);
+  }, [receiptPrinter, save]);
 
   return (
     <Screen padded={false}>
@@ -98,6 +102,9 @@ export default function BuyScrapScreen() {
                 },
               }}
             />
+          ) : null}
+          {state.lastSaved && receiptPrinter.isSupported ? (
+            <PrintStatusNotice status={receiptPrinter.status} onPrint={() => void receiptPrinter.printLast()} />
           ) : null}
           {state.submitError ? <ErrorBanner message={state.submitError} /> : null}
           {productsError ? <ErrorBanner message={productsError} /> : null}

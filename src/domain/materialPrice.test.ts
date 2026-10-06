@@ -13,6 +13,7 @@ import { formatPesoInput } from './money';
 const COPPER_PRICES: ProductPrices = {
   buy: { price: 42_000, effectiveDate: '2026-10-01' },
   sell: { price: 47_000, effectiveDate: '2026-10-01' },
+  supplier: { price: 52_000, effectiveDate: '2026-10-01' },
 };
 
 test('an old price stays current and is not saved again when unchanged', () => {
@@ -24,18 +25,21 @@ test('an old price stays current and is not saved again when unchanged', () => {
 test('saves only the prices that were changed', () => {
   const { changes, errors } = buildPriceChanges(
     {
-      copper: { buy: '420', sell: '480' },
-      aluminum: { buy: '', sell: '' },
+      copper: { buy: '420', sell: '480', supplier: '530' },
+      aluminum: { buy: '', sell: '', supplier: '' },
     },
     new Map([['copper', COPPER_PRICES]])
   );
 
   assert.deepEqual(errors, {});
-  assert.deepEqual(changes, [{ materialId: 'copper', priceType: 'sell', price: 48_000 }]);
+  assert.deepEqual(changes, [
+    { materialId: 'copper', priceType: 'sell', price: 48_000 },
+    { materialId: 'copper', priceType: 'supplier', price: 53_000 },
+  ]);
 });
 
 test('reports a typed price that is not a peso amount', () => {
-  const { changes, errors } = buildPriceChanges({ copper: { buy: 'abc', sell: '' } }, new Map());
+  const { changes, errors } = buildPriceChanges({ copper: { buy: 'abc', sell: '', supplier: '' } }, new Map());
 
   assert.equal(changes.length, 0);
   assert.ok(errors.copper.buy);

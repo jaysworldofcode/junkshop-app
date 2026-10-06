@@ -28,6 +28,7 @@ function priceSummary(prices: ProductPrices): string | null {
   const parts = [
     prices.buy ? `Buy ${formatPeso(prices.buy.price)}` : null,
     prices.sell ? `Sell ${formatPeso(prices.sell.price)}` : null,
+    prices.supplier ? `Supplier ${formatPeso(prices.supplier.price)}` : null,
   ].filter(Boolean);
 
   return parts.length > 0 ? parts.join(' · ') : null;

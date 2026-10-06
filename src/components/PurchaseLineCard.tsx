@@ -175,7 +175,7 @@ export const PurchaseLineCard = memo(function PurchaseLineCard({
         editable={!disabled}
       />
       {product ? (
-        <PriceComparison priceType="sell" entered={figures.supplierPrice} reference={prices.sell} unit={unit} />
+        <PriceComparison priceType="supplier" entered={figures.supplierPrice} reference={prices.supplier} unit={unit} />
       ) : null}
 
       <FormField

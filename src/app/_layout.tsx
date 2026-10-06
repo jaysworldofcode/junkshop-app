@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 
+import { useAutoBackup } from '@/backup/autoBackup';
 import { AppErrorBoundary } from '@/components/AppErrorBoundary';
 import { DatabaseLoadingScreen } from '@/components/DatabaseLoadingScreen';
 import { DATABASE_NAME } from '@/constants/database';
@@ -35,6 +36,7 @@ export default function RootLayout() {
 
 function RootNavigation() {
   const { colorScheme } = useAppTheme();
+  useAutoBackup();
 
   useEffect(() => {
     void SplashScreen.hideAsync();

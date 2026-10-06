@@ -13,7 +13,7 @@ export type CurrentPrice = {
 
 export type ProductPrices = Record<PriceType, CurrentPrice | null>;
 
-export const NO_PRICES: ProductPrices = { buy: null, sell: null };
+export const NO_PRICES: ProductPrices = { buy: null, sell: null, supplier: null };
 
 export type PriceChange = {
   materialId: string;

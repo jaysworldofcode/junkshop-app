@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useSQLiteContext } from 'expo-sqlite';
+import { useSQLiteContext, type SQLiteDatabase } from 'expo-sqlite';
 
 import {
   getAutoBackupFolder,
@@ -57,20 +57,35 @@ export function useDataTransfer() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    const [counts, folder, lastAt] = await Promise.all([
-      countLocalRecords(database),
-      getAutoBackupFolder(),
-      getLastAutoBackupAt(),
-    ]);
+  const applyStatus = useCallback(({ counts, folder, lastAt }: TransferStatus) => {
     setLocalCounts(counts);
     setFolderUri(folder);
     setLastBackupAt(lastAt);
-  }, [database]);
+  }, []);
+
+  const refresh = useCallback(async () => {
+    applyStatus(await loadTransferStatus(database));
+  }, [applyStatus, database]);
 
   useEffect(() => {
-    refresh().catch((loadError: unknown) => setError(messageOf(loadError, 'Could not read the local data.')));
-  }, [refresh]);
+    let isCancelled = false;
+
+    loadTransferStatus(database)
+      .then((status) => {
+        if (!isCancelled) {
+          applyStatus(status);
+        }
+      })
+      .catch((loadError: unknown) => {
+        if (!isCancelled) {
+          setError(messageOf(loadError, 'Could not read the local data.'));
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [applyStatus, database]);
 
   const run = useCallback(async (kind: Exclude<Busy, null>, task: () => Promise<string | null>, fallback: string) => {
     setBusy(kind);
@@ -285,6 +300,21 @@ export function useDataTransfer() {
     backUpNow,
     turnOffBackupFolder,
   };
+}
+
+type TransferStatus = {
+  counts: RecordCounts;
+  folder: string | null;
+  lastAt: string | null;
+};
+
+async function loadTransferStatus(database: SQLiteDatabase): Promise<TransferStatus> {
+  const [counts, folder, lastAt] = await Promise.all([
+    countLocalRecords(database),
+    getAutoBackupFolder(),
+    getLastAutoBackupAt(),
+  ]);
+  return { counts, folder, lastAt };
 }
 
 /** File and storage errors from native code are not readable, so only validation messages are shown as-is. */

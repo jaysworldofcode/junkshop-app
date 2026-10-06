@@ -13,6 +13,7 @@ import {
   validateSaleDraft,
   type SaleLineFigures,
   type SaleSummary,
+  type SavedSale,
 } from '@/domain/sale';
 import { nowIso } from '@/domain/timestamps';
 import { createSaleFormState, saleFormReducer, type SaleFormAction, type SaleFormState } from '@/sales/saleFormReducer';
@@ -23,7 +24,7 @@ export function useSaleForm(pricesByMaterial: Map<string, ProductPrices>): {
   dispatch: (action: SaleFormAction) => void;
   lineFigures: Record<string, SaleLineFigures>;
   summary: SaleSummary;
-  save: () => Promise<boolean>;
+  save: () => Promise<SavedSale | null>;
 } {
   const database = useSQLiteContext();
   const [state, dispatch] = useReducer(saleFormReducer, undefined, () => createSaleFormState(todayLocalDateKey()));
@@ -41,11 +42,11 @@ export function useSaleForm(pricesByMaterial: Map<string, ProductPrices>): {
 
   const summary = useMemo(() => summarizeSale(Object.values(lineFigures)), [lineFigures]);
 
-  const save = useCallback(async (): Promise<boolean> => {
+  const save = useCallback(async (): Promise<SavedSale | null> => {
     const errors = validateSaleDraft(state.draft, pricesByMaterial);
     if (hasSaleErrors(errors)) {
       dispatch({ type: 'setErrors', errors });
-      return false;
+      return null;
     }
 
     dispatch({ type: 'submitStart' });
@@ -56,13 +57,13 @@ export function useSaleForm(pricesByMaterial: Map<string, ProductPrices>): {
         buildNewSale(state.draft, pricesByMaterial, { createId, timestamp: nowIso() })
       );
       dispatch({ type: 'submitSuccess', saved });
-      return true;
+      return saved;
     } catch (error) {
       dispatch({
         type: 'submitFailure',
         message: error instanceof Error ? error.message : 'Could not save this sale. Nothing was saved.',
       });
-      return false;
+      return null;
     }
   }, [database, pricesByMaterial, state.draft]);
 

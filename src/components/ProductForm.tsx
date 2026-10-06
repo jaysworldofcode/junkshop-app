@@ -19,6 +19,7 @@ import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { WarningNotice } from '@/components/WarningNotice';
 import { FONT_SIZE_BODY, FONT_SIZE_CAPTION, SPACE_XS, SPACE_SM, SPACE_MD, SPACE_LG } from '@/constants/layout';
+import { PRICE_TYPE_HINTS } from '@/constants/price';
 import { PRODUCT_UNIT_OPTIONS } from '@/constants/product';
 import { todayLocalDateKey } from '@/domain/localDate';
 import { priceSinceLabel } from '@/domain/materialPrice';
@@ -132,7 +133,7 @@ export function ProductForm({ productId }: ProductFormProps) {
 
           <SectionCard
             title="Current prices"
-            description="Fills in automatically on the Buy screen. Prices stay until you change them."
+            description="Buy fills in on the Buy screen and Sell on the Sell screen. Prices stay until you change them."
           >
             <View style={styles.pair}>
               <View style={styles.pairItem}>
@@ -166,6 +167,19 @@ export function ProductForm({ productId }: ProductFormProps) {
                 />
               </View>
             </View>
+            <FormField
+              label="Supplier price"
+              placeholder="0.00"
+              prefix="₱"
+              suffix={perUnit}
+              hint={`${priceSinceLabel(currentPrices.supplier, today)}. ${PRICE_TYPE_HINTS.supplier}`}
+              value={state.draft.supplierPrice}
+              onChangeText={(value) => changeField('supplierPrice', value)}
+              error={state.fieldErrors.supplierPrice}
+              keyboardType="decimal-pad"
+              inputMode="decimal"
+              editable={!isLocked}
+            />
             {productId ? (
               <PrimaryButton
                 label="Price history"

@@ -43,10 +43,10 @@ description: Guidelines for writing clean, maintainable, and human-readable code
 - Fix technical debt early
 - Leave code cleaner than you found it
 
-## Testing
+<!-- ## Testing
 - Write tests before fixing bugs
 - Keep tests readable and maintainable
-- Test edge cases and error conditions
+- Test edge cases and error conditions -->
 
 ## Version Control
 - Write clear commit messages
