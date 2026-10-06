@@ -35,7 +35,7 @@ export function PurchaseItemCard({ item }: PurchaseItemCardProps) {
       </View>
 
       <View style={styles.resale}>
-        <Text style={[styles.subheading, { color: colors.muted }]}>RESALE PLAN</Text>
+        <Text style={[styles.subheading, { color: colors.muted }]}>SUPPLIER PLAN</Text>
         <DetailRow
           label="Supplier price"
           value={item.supplierPrice === null ? 'Not set' : `${formatPeso(item.supplierPrice)}/${item.unit}`}
@@ -44,7 +44,7 @@ export function PurchaseItemCard({ item }: PurchaseItemCardProps) {
       </View>
 
       <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
-        <FigureRow label="Expected selling total" centavos={item.expectedSellTotal} />
+        <FigureRow label="Expected from supplier" centavos={item.expectedSellTotal} />
         <FigureRow label="Expected profit" centavos={item.expectedProfit} tone="profit" emphasized />
       </View>
     </View>

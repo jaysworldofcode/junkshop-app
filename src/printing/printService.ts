@@ -88,13 +88,17 @@ function requirePrinterModule(): NonNullable<typeof BluetoothPrinter> {
   return BluetoothPrinter;
 }
 
-/** Android 12 and newer ask the user for the Nearby devices permission before Bluetooth can connect. */
+/** Android 12 and newer ask for Nearby devices. SCAN is needed to cancel discovery before connecting. */
 async function ensureBluetoothPermission(): Promise<void> {
   if (Platform.OS !== 'android' || Number(Platform.Version) < 31) {
     return;
   }
-  const result = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
-  if (result !== PermissionsAndroid.RESULTS.GRANTED) {
+  const permissions = [
+    PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT,
+    PermissionsAndroid.PERMISSIONS.BLUETOOTH_SCAN,
+  ];
+  const result = await PermissionsAndroid.requestMultiple(permissions);
+  if (result[PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT] !== PermissionsAndroid.RESULTS.GRANTED) {
     throw new PrintError('Allow Nearby devices for Junkshop in Android settings to use the printer.');
   }
 }
@@ -104,14 +108,24 @@ const NATIVE_ERROR_MESSAGES: Record<string, string> = {
   ERR_BLUETOOTH_OFF: 'Bluetooth is off. Turn it on, then try again.',
   ERR_BLUETOOTH_PERMISSION: 'Allow Nearby devices for Junkshop in Android settings to use the printer.',
   ERR_PRINTER_NOT_PAIRED: 'The printer is no longer paired. Pair it in Bluetooth settings, then choose it again.',
-  ERR_PRINTER_CONNECT: 'Could not reach the printer. Check that it is on, charged, and nearby.',
+  ERR_PRINTER_CONNECT:
+    'Could not reach the printer. Close other printer apps, keep it on and nearby, then try again.',
 };
 
 function toPrintError(error: unknown): PrintError {
-  const code = typeof error === 'object' && error !== null && 'code' in error ? String(error.code) : '';
-  const message = NATIVE_ERROR_MESSAGES[code];
+  const code = nativeErrorCode(error);
+  const message = code ? NATIVE_ERROR_MESSAGES[code] : undefined;
   if (!message) {
     console.warn('Printing failed', error);
   }
-  return new PrintError(message ?? 'Could not print. Check that the printer is on and nearby.');
+  return new PrintError(message ?? NATIVE_ERROR_MESSAGES.ERR_PRINTER_CONNECT);
+}
+
+function nativeErrorCode(error: unknown): string {
+  if (typeof error !== 'object' || error === null) {
+    return '';
+  }
+  const record = error as { code?: unknown; message?: unknown };
+  const haystack = `${record.code ?? ''} ${record.message ?? ''}`;
+  return Object.keys(NATIVE_ERROR_MESSAGES).find((code) => haystack.includes(code)) ?? '';
 }

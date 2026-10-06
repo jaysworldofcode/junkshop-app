@@ -10,6 +10,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import expo.modules.kotlin.exception.CodedException
+import expo.modules.kotlin.functions.Coroutine
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import kotlinx.coroutines.Dispatchers
@@ -25,6 +26,9 @@ private val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34
 
 /** The printer drops bytes that are still buffered when the socket closes. */
 private const val DRAIN_DELAY_MS = 800L
+
+/** The Bluetooth radio needs a short pause after a failed socket before the next attempt. */
+private const val RETRY_DELAY_MS = 300L
 
 class BluetoothUnavailableException : CodedException("ERR_BLUETOOTH_UNAVAILABLE", "This phone has no Bluetooth.", null)
 class BluetoothOffException : CodedException("ERR_BLUETOOTH_OFF", "Bluetooth is turned off.", null)
@@ -58,10 +62,18 @@ class BluetoothPrinterModule : Module() {
     AsyncFunction("printAsync") Coroutine { address: String, data: ByteArray ->
       printLock.withLock {
         withContext(Dispatchers.IO) {
-          val adapter = readyAdapter()
-          val device = bondedDevices(adapter).firstOrNull { it.address.equals(address, ignoreCase = true) }
-            ?: throw PrinterNotPairedException()
-          send(adapter, device, data)
+          try {
+            val adapter = readyAdapter()
+            val device = bondedDevices(adapter).firstOrNull { it.address.equals(address, ignoreCase = true) }
+              ?: throw PrinterNotPairedException()
+            send(adapter, device, data)
+          } catch (error: CodedException) {
+            throw error
+          } catch (error: SecurityException) {
+            throw BluetoothPermissionException()
+          } catch (error: Exception) {
+            throw PrinterConnectException(error)
+          }
         }
       }
     }
@@ -81,9 +93,11 @@ class BluetoothPrinterModule : Module() {
     return adapter
   }
 
+  private fun hasPermission(permission: String): Boolean =
+    context.checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+
   private fun hasConnectPermission(): Boolean =
-    Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
-      context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+    Build.VERSION.SDK_INT < Build.VERSION_CODES.S || hasPermission(Manifest.permission.BLUETOOTH_CONNECT)
 
   @SuppressLint("MissingPermission")
   private fun bondedDevices(adapter: BluetoothAdapter): List<BluetoothDevice> =
@@ -94,7 +108,7 @@ class BluetoothPrinterModule : Module() {
 
   @SuppressLint("MissingPermission")
   private suspend fun send(adapter: BluetoothAdapter, device: BluetoothDevice, data: ByteArray) {
-    adapter.cancelDiscovery()
+    stopDiscovery(adapter)
     val socket = connect(device)
     try {
       socket.outputStream.apply {
@@ -109,24 +123,66 @@ class BluetoothPrinterModule : Module() {
     }
   }
 
-  /** Some printer firmware refuses the secure channel, so the insecure one is tried next. */
+  /**
+   * Android 12+ requires BLUETOOTH_SCAN for cancelDiscovery. Listing paired printers only needs
+   * CONNECT, so a missing SCAN permission used to crash print with an unmapped SecurityException.
+   */
   @SuppressLint("MissingPermission")
-  private fun connect(device: BluetoothDevice): BluetoothSocket {
-    var lastError: IOException? = null
-    val factories = listOf<(BluetoothDevice) -> BluetoothSocket>(
-      { it.createRfcommSocketToServiceRecord(SPP_UUID) },
-      { it.createInsecureRfcommSocketToServiceRecord(SPP_UUID) },
-    )
-    for (factory in factories) {
-      val socket = factory(device)
+  private fun stopDiscovery(adapter: BluetoothAdapter) {
+    try {
+      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || hasPermission(Manifest.permission.BLUETOOTH_SCAN)) {
+        adapter.cancelDiscovery()
+      }
+    } catch (_: SecurityException) {
+    }
+  }
+
+  /**
+   * Cheap SPP printers often reject the secure SDP socket. Try insecure SPP first, then the
+   * device's advertised UUIDs, then RFCOMM channel 1 (the usual port when SDP is missing).
+   */
+  @SuppressLint("MissingPermission")
+  private suspend fun connect(device: BluetoothDevice): BluetoothSocket {
+    var lastError: Exception? = null
+    for (factory in socketFactories(device)) {
+      val socket = try {
+        factory()
+      } catch (error: Exception) {
+        lastError = error
+        continue
+      }
       try {
         socket.connect()
         return socket
       } catch (error: IOException) {
         lastError = error
         runCatching { socket.close() }
+        delay(RETRY_DELAY_MS)
       }
     }
     throw PrinterConnectException(lastError)
+  }
+
+  @SuppressLint("MissingPermission")
+  private fun socketFactories(device: BluetoothDevice): List<() -> BluetoothSocket> {
+    val uuids = linkedSetOf(SPP_UUID)
+    device.uuids?.forEach { parcel -> uuids.add(parcel.uuid) }
+    val factories = mutableListOf<() -> BluetoothSocket>()
+    for (uuid in uuids) {
+      factories.add { device.createInsecureRfcommSocketToServiceRecord(uuid) }
+      factories.add { device.createRfcommSocketToServiceRecord(uuid) }
+    }
+    factories.add { rfcommChannel(device, insecure = true) }
+    factories.add { rfcommChannel(device, insecure = false) }
+    return factories
+  }
+
+  /** Hidden API: connect to RFCOMM channel 1 without an SDP lookup. */
+  private fun rfcommChannel(device: BluetoothDevice, insecure: Boolean): BluetoothSocket {
+    val method = device.javaClass.getMethod(
+      if (insecure) "createInsecureRfcommSocket" else "createRfcommSocket",
+      Int::class.javaPrimitiveType,
+    )
+    return method.invoke(device, 1) as BluetoothSocket
   }
 }

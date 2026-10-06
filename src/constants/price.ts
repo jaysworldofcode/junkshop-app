@@ -12,7 +12,7 @@ export const PRICE_TYPE_LABELS: Record<PriceType, string> = {
 export const PRICE_TYPE_HINTS: Record<PriceType, string> = {
   buy: 'What you pay people who bring scrap. Used on the Buy screen.',
   sell: 'What walk-in buyers pay you. Used on the Sell screen.',
-  supplier: 'What the supplier pays when you deliver. Tracked for price history only.',
+  supplier: 'What the supplier pays when you deliver. Used for expected profit on Buy.',
 };
 
 export const TICKET_PRICE_DAY_LIMIT = 30;

@@ -119,6 +119,7 @@ export function computeLineFigures(line: PurchaseLineDraft): PurchaseLineFigures
   const supplierPrice = parsePesoInput(line.supplierPrice);
 
   const purchaseTotal = quantity !== null && unitBuyPrice !== null ? amountForQuantity(quantity, unitBuyPrice) : null;
+  // Walk-in sell price is not used here. Bought scrap usually goes to the supplier.
   const expectedSellTotal =
     quantity !== null && supplierPrice !== null ? amountForQuantity(quantity, supplierPrice) : null;
   const expectedProfit =

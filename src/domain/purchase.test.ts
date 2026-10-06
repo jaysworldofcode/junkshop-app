@@ -46,6 +46,28 @@ test('matches the spec acceptance example for the copper ticket', () => {
   assert.equal(figures.expectedProfit, 177_500);
 });
 
+test('expected profit uses supplier price, not a walk-in sell price', () => {
+  const line = {
+    ...createEmptyPurchaseLine('line-1'),
+    quantity: '10',
+    buyPrice: '100',
+    supplierPrice: '150',
+  };
+  const figures = computeLineFigures(line);
+
+  assert.equal(figures.purchaseTotal, 100_000);
+  assert.equal(figures.expectedSellTotal, 150_000);
+  assert.equal(figures.expectedProfit, 50_000);
+});
+
+test('leaves expected profit blank when there is no supplier price', () => {
+  const line = { ...createEmptyPurchaseLine('line-1'), quantity: '10', buyPrice: '100' };
+  const figures = computeLineFigures(line);
+
+  assert.equal(figures.expectedSellTotal, null);
+  assert.equal(figures.expectedProfit, null);
+});
+
 test('builds an unrealized purchase whose header totals equal the sum of its lines', () => {
   let nextId = 0;
   const { purchase, items } = buildNewPurchase(copperTicket(), {

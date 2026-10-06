@@ -37,7 +37,7 @@ export default function PrinterScreen() {
         {setup.isSupported ? (
         <SectionCard
           title="Printer"
-          description="Pair the printer first in the phone's Bluetooth settings. A GOOJPRT PT-210 usually shows as PT-210, and its PIN is 0000 or 1234."
+          description="Pair the printer first in the phone's Bluetooth settings. A GOOJPRT PT-210 usually shows as PT-210, and its PIN is 0000 or 1234. Close other printer apps first — it only talks to one app at a time."
         >
           {settings.printer ? (
             <DetailRow label={settings.printer.name} value={settings.printer.address} />

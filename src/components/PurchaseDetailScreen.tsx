@@ -104,7 +104,7 @@ function PurchaseDetailView({ purchase }: { purchase: PurchaseDetail }) {
 
         <SectionCard title="Ticket summary">
           <FigureRow label="Purchase total" centavos={purchase.totalAmount} emphasized />
-          <FigureRow label="Expected selling total" centavos={expected.expectedSellTotal} />
+          <FigureRow label="Expected from supplier" centavos={expected.expectedSellTotal} />
           <FigureRow label="Expected profit" centavos={expected.expectedProfit} tone="profit" />
         </SectionCard>
       </ScrollView>

@@ -159,11 +159,11 @@ export const PurchaseLineCard = memo(function PurchaseLineCard({
 
       <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-      <Text style={[styles.subheading, { color: colors.muted }]}>RESALE PLAN</Text>
+      <Text style={[styles.subheading, { color: colors.muted }]}>SUPPLIER PLAN</Text>
 
       <FormField
         label="Supplier price"
-        hint={`Planned selling price per ${unit}.`}
+        hint={`What the supplier pays per ${unit} when you deliver.`}
         placeholder="0.00"
         prefix="₱"
         suffix={perUnit}
@@ -189,7 +189,7 @@ export const PurchaseLineCard = memo(function PurchaseLineCard({
       />
 
       <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
-        <FigureRow label="Expected selling total" centavos={figures.expectedSellTotal} />
+        <FigureRow label="Expected from supplier" centavos={figures.expectedSellTotal} />
         <FigureRow label="Expected profit" centavos={figures.expectedProfit} tone="profit" emphasized />
       </View>
     </View>

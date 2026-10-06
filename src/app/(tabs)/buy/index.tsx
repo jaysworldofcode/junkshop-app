@@ -189,7 +189,7 @@ export default function BuyScrapScreen() {
 
           <SectionCard title="Ticket summary">
             <FigureRow label="Purchase total" centavos={summary.totalAmount} />
-            <FigureRow label="Expected selling total" centavos={summary.expectedSellTotal} />
+            <FigureRow label="Expected from supplier" centavos={summary.expectedSellTotal} />
             <FigureRow label="Expected profit" centavos={summary.expectedProfit} tone="profit" />
           </SectionCard>
         </ScrollView>
