@@ -8,6 +8,9 @@ export type PeriodTotals = {
   saleCount: number;
   saleTotal: number;
   realizedProfit: number;
+  expenseCount: number;
+  expenseTotal: number;
+  netProfit: number;
   unsettledPurchases: number;
   unsettledSales: number;
 };

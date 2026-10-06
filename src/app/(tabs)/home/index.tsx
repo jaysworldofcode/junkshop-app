@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { DateRangeFilter } from '@/components/DateRangeFilter';
 import { DetailRow } from '@/components/DetailRow';
 import { ErrorBanner } from '@/components/ErrorBanner';
+import { FigureRow } from '@/components/FigureRow';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
@@ -46,14 +47,18 @@ export default function DashboardScreen() {
 
         <View style={[styles.hero, { backgroundColor: colors.primarySoft }]}>
           <Text style={[styles.heroLabel, { color: colors.muted }]}>{formatRangeLabel(range, today).toUpperCase()}</Text>
-          <Text style={[styles.heroCaption, { color: colors.text }]}>Realized profit</Text>
+          <Text style={[styles.heroCaption, { color: colors.text }]}>Net profit</Text>
           {data ? (
             <>
-              <Text style={[styles.heroValue, { color: data.realizedProfit < 0 ? colors.danger : colors.primary }]}>
-                {formatPeso(data.realizedProfit)}
+              <Text style={[styles.heroValue, { color: data.netProfit < 0 ? colors.danger : colors.primary }]}>
+                {formatPeso(data.netProfit)}
               </Text>
+              <View style={styles.heroFigures}>
+                <FigureRow label="Realized profit" centavos={data.realizedProfit} tone="profit" />
+                <FigureRow label="Expenses" centavos={-data.expenseTotal} tone="profit" />
+              </View>
               <Text style={[styles.heroCaption, { color: colors.muted }]}>
-                Actual profit on {ticketCount(data.saleCount, 'sale')} in this period.
+                Profit on {ticketCount(data.saleCount, 'sale')} minus {ticketCount(data.expenseCount, 'expense')}.
               </Text>
             </>
           ) : isLoading ? (
@@ -83,6 +88,12 @@ export default function DashboardScreen() {
               icon={{ ios: 'list.bullet', android: 'list', web: 'list' }}
               disabled={transactionCount === 0}
               onPress={() => router.push({ pathname: '/home/transactions', params: { from: range.from, to: range.to } })}
+            />
+            <PrimaryButton
+              label="Open reports"
+              variant="outline"
+              icon={{ ios: 'chart.bar.fill', android: 'bar_chart', web: 'bar_chart' }}
+              onPress={() => router.push('/home/reports')}
             />
           </>
         ) : null}
@@ -115,6 +126,10 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE_DISPLAY + 8,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
+  },
+  heroFigures: {
+    gap: SPACE_XS,
+    marginVertical: SPACE_SM,
   },
   heroLoading: {
     alignSelf: 'flex-start',

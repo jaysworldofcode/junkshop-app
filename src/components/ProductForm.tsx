@@ -166,6 +166,15 @@ export function ProductForm({ productId }: ProductFormProps) {
                 />
               </View>
             </View>
+            {productId ? (
+              <PrimaryButton
+                label="Price history"
+                variant="outline"
+                icon={{ ios: 'chart.line.uptrend.xyaxis', android: 'show_chart', web: 'show_chart' }}
+                onPress={() => router.push({ pathname: '/products/price-history/[id]', params: { id: productId } })}
+                disabled={isLocked}
+              />
+            ) : null}
           </SectionCard>
 
           <SectionCard title="Optional details" description="Helps you find the product faster.">

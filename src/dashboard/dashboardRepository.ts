@@ -10,7 +10,7 @@ const UNSETTLED_STATUS_SQL = UNSETTLED_PAYMENT_STATUSES.map((status) => `'${stat
 type TicketTotalsRow = { ticket_count: number; total: number | null; unsettled_count: number | null };
 
 export async function getPeriodTotals(database: SQLiteDatabase, { from, to }: DateRange): Promise<PeriodTotals> {
-  const [purchases, sales, profit] = await Promise.all([
+  const [purchases, sales, profit, expenses] = await Promise.all([
     database.getFirstAsync<TicketTotalsRow>(
       `SELECT COUNT(*) AS ticket_count, SUM(total_amount) AS total,
               SUM(CASE WHEN payment_status IN (${UNSETTLED_STATUS_SQL}) THEN 1 ELSE 0 END) AS unsettled_count
@@ -32,14 +32,24 @@ export async function getPeriodTotals(database: SQLiteDatabase, { from, to }: Da
        WHERE s.sale_date BETWEEN ? AND ?`,
       [from, to]
     ),
+    database.getFirstAsync<{ expense_count: number; total: number | null }>(
+      'SELECT COUNT(*) AS expense_count, SUM(amount) AS total FROM expenses WHERE expense_date BETWEEN ? AND ?',
+      [from, to]
+    ),
   ]);
+
+  const realizedProfit = profit?.total ?? 0;
+  const expenseTotal = expenses?.total ?? 0;
 
   return {
     purchaseCount: purchases?.ticket_count ?? 0,
     purchaseTotal: purchases?.total ?? 0,
     saleCount: sales?.ticket_count ?? 0,
     saleTotal: sales?.total ?? 0,
-    realizedProfit: profit?.total ?? 0,
+    realizedProfit,
+    expenseCount: expenses?.expense_count ?? 0,
+    expenseTotal,
+    netProfit: realizedProfit - expenseTotal,
     unsettledPurchases: purchases?.unsettled_count ?? 0,
     unsettledSales: sales?.unsettled_count ?? 0,
   };

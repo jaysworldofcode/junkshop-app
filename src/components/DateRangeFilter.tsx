@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { ChoiceChips } from '@/components/ChoiceChips';
-import { DateStepper } from '@/components/DateStepper';
+import { DateField } from '@/components/DateField';
 import { DATE_RANGE_PRESET_LABELS, DATE_RANGE_PRESETS, type DateRangePreset } from '@/constants/dateRange';
 import { SPACE_MD } from '@/constants/layout';
 import { changeRangeEnd, type DateRange } from '@/domain/dateRange';
@@ -25,12 +25,12 @@ export function DateRangeFilter({ preset, customRange, onChangePreset, onChangeC
       />
       {preset === 'custom' ? (
         <>
-          <DateStepper
+          <DateField
             label="From"
             value={customRange.from}
             onChange={(value) => onChangeCustomRange(changeRangeEnd(customRange, 'from', value))}
           />
-          <DateStepper
+          <DateField
             label="To"
             value={customRange.to}
             onChange={(value) => onChangeCustomRange(changeRangeEnd(customRange, 'to', value))}

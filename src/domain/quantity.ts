@@ -20,6 +20,15 @@ export function formatQuantity(thousandths: number): string {
   }).format(fromThousandths(thousandths));
 }
 
+/** Average price per unit, weighted by quantity. Null when nothing was weighed. */
+export function unitPriceFor(totalCentavos: number, quantityThousandths: number): number | null {
+  if (quantityThousandths <= 0) {
+    return null;
+  }
+
+  return Math.round((totalCentavos * QUANTITY_SCALE) / quantityThousandths);
+}
+
 export function amountForQuantity(quantityThousandths: number, unitPriceCentavos: number): number {
   return Math.round((quantityThousandths * unitPriceCentavos) / QUANTITY_SCALE);
 }

@@ -327,7 +327,7 @@ SQLite storage choices used when coding:
 | id | uuid PK | |
 | expense_date | timestamptz | |
 | category | text | |
-| description | text | nullable |
+| title | text | required; what the expense was for, e.g. Diesel for the truck |
 | amount | numeric(14,2) | |
 | payment_method | text | |
 | receipt_url | text | nullable |
@@ -660,30 +660,27 @@ Database: `sales` and `sale_items`.
 Screen:
 
 - Sale date, default today.
-- Buyer name. Blank becomes Unknown.
-- Pick a purchase line whose status is unrealized or partial.
-- Show remaining quantity. Remaining is purchased quantity minus every quantity already sold against that line.
-- Quantity sold. Reject a quantity above remaining.
-- Actual selling price per unit.
-- Sale total, calculated as quantity sold times selling price.
-- Allocated purchase cost, calculated as quantity sold times that line's unit buy price.
-- Actual profit, calculated as sale total minus allocated purchase cost.
+- Buyer name. Blank becomes Unknown. Buyers are usually individual people who pick materials, not companies.
+- One or more lines:
+  - Product, active products only, most often bought first. There is no stock, so there is no purchase lot to pick and no remaining-quantity limit.
+  - Quantity sold.
+  - Selling price per unit, filled in from the product's current sell price. The cashier can type a different price, and the screen compares it with the current sell price.
+  - Sale total, calculated as quantity sold times selling price.
+  - Cost, calculated as quantity sold times the product's current buy price. Stored in allocated_purchase_cost so a later price change does not rewrite old profit.
+  - Actual profit, calculated as sale total minus cost.
+- A product without a current buy price cannot be sold until its buy price is set, because profit cannot be worked out.
 - Payment status and one payment method, same approach as Buy.
-- Save.
+- Notes.
+- Save the sale and its lines in one transaction. Purchase lines are not changed by a sale.
 
-On save, in one transaction, insert the sale and update the lot:
-
-- Remaining 0: status sold.
-- Remaining between 0 and the purchased quantity: status partial.
-- A sold line no longer appears in the picker.
-
-Done when selling 10 kg of the copper lot sets the lot to partial and the profit uses ₱420 per kg as the cost. Selling the rest sets the lot to sold.
+Done when selling 10 kg of copper at ₱470 with a current buy price of ₱420 saves a sale of ₱4,700 with ₱4,200 cost and ₱500 profit.
 
 ### Step 5. Expenses
 
 Database: `expenses`.
 
-- Date, category, amount, payment method, optional description and notes.
+- Date, title, category, amount, payment method, and optional notes.
+- The list shows the title, with the category and payment method under it.
 - List expenses, newest first.
 - Editing an expense is allowed here because it is not yet tied to a sale.
 
@@ -691,15 +688,17 @@ Done when a ₱5,000 expense is saved and still listed after a restart.
 
 ### Step 6. Dashboard
 
-Read only. It sums what Steps 2 to 5 saved.
+Read only. It sums what Steps 2 to 5 saved for the chosen period.
 
-- Today's purchases: sum of purchase totals dated today.
-- Today's sales: sum of sale totals dated today.
-- Realized profit: sum of actual profit on sales dated today.
-- Today's expenses.
-- Net profit: realized profit minus today's expenses.
-- Expected profit on unsold and partial lots, using remaining quantity and supplier price. This figure is not limited to today.
-- Until Step 8, show how many tickets are unpaid or partial. Do not treat that count as a peso balance. Receivables and payables are peso totals only after payments exist.
+- Period filter: Today (default), Yesterday, This week (from Monday), This month, or a Custom from–to range. Both ends are included.
+- Purchases: sum of purchase totals in the period.
+- Sales: sum of sale totals in the period.
+- Realized profit: sum of actual profit on sales in the period.
+- Expenses in the period. Waits for Step 5.
+- Net profit: realized profit minus expenses. Waits for Step 5.
+- Until Step 8, show how many tickets in the period are unpaid or partial. Do not treat that count as a peso balance. Receivables and payables are peso totals only after payments exist.
+- View transactions: the sales and purchases in the period, newest first, filtered by Sales (default), Purchases, or All, with totals. Opening a sale shows each line with its cost and profit. Opening a purchase shows the purchase ticket.
+- No expected profit on unsold lots: there is no stock, and sales are not linked to purchase lots.
 
 Done when a day that contains the copper purchase, a sale, and the ₱5,000 expense can be checked by hand against these formulas.
 
@@ -732,14 +731,13 @@ Already built (current prices, added after Step 2):
 - Set prices on the product form or on Products → Prices.
 - The Buy screen fills in the current buy price and Supplier Price when a product is picked. The cashier can still type a different price, and the screen shows the difference from the current price and whether it means more or less profit.
 - The Buy product picker lists the most often bought products first.
+- The Sell screen fills in the current sell price and compares a typed price against it the same way. The current buy price is the cost used for sale profit.
 
 Still to do:
 
 - Saving a buy writes a buy price for that material and date.
 - Saving a sell writes a sell price.
 - Show a history list per product.
-- Sell Scrap (Step 4) fills in and compares against the current sell price the same way.
-
 ### Step 10. Sync identity
 
 Before any export work, confirm every business table already has a UUID, created_at, and updated_at. Add a revision number on financial records. Add `device_metadata`. When a synced row is removed, set deleted_at so the deletion can travel in a later merge. Do not use an auto-increment id as the identity that moves between phones.
@@ -834,9 +832,9 @@ Database: `attachments`.
 - [x] Step 1. Add a product
 - [x] Step 2. POS: Buy Scrap
 - [x] Step 3. Purchase history
-- [ ] Step 4. POS: Sell Scrap
+- [x] Step 4. POS: Sell Scrap
 - [ ] Step 5. Expenses
-- [ ] Step 6. Dashboard
+- [x] Step 6. Dashboard
 - [ ] Step 7. People
 - [ ] Step 8. Payments
 - [ ] Step 9. Price history

@@ -3,7 +3,7 @@ import { Stack } from 'expo-router';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useAppTheme } from '@/theme/useAppTheme';
 
-export default function ProductsLayout() {
+export default function ExpensesLayout() {
   const { colors } = useAppTheme();
 
   return (
@@ -12,22 +12,20 @@ export default function ProductsLayout() {
         headerTintColor: colors.primary,
         headerStyle: { backgroundColor: colors.surface },
         headerTitleStyle: { color: colors.text, fontWeight: '700' },
-        headerBackButtonDisplayMode: 'minimal',
         headerShadowVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
         contentStyle: { backgroundColor: colors.background },
       }}
     >
       <Stack.Screen
         name="index"
         options={{
-          title: 'Products',
+          title: 'Expenses',
           headerRight: () => <ThemeToggleButton />,
         }}
       />
-      <Stack.Screen name="new" options={{ title: 'Add product' }} />
-      <Stack.Screen name="[id]" options={{ title: 'Edit product' }} />
-      <Stack.Screen name="prices" options={{ title: 'Prices' }} />
-      <Stack.Screen name="price-history/[id]" options={{ title: 'Price history' }} />
+      <Stack.Screen name="new" options={{ title: 'Add expense' }} />
+      <Stack.Screen name="[id]" options={{ title: 'Edit expense' }} />
     </Stack>
   );
 }

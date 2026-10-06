@@ -5,6 +5,8 @@ import { MIGRATION_001_CREATE_MATERIALS } from '@/db/migrations/001_create_mater
 import { MIGRATION_002_CREATE_PURCHASES } from '@/db/migrations/002_create_purchases';
 import { MIGRATION_003_CREATE_MATERIAL_PRICES } from '@/db/migrations/003_create_material_prices';
 import { MIGRATION_004_CREATE_SALES } from '@/db/migrations/004_create_sales';
+import { MIGRATION_005_CREATE_EXPENSES } from '@/db/migrations/005_create_expenses';
+import { MIGRATION_006_ADD_EXPENSE_TITLE } from '@/db/migrations/006_add_expense_title';
 
 type Migration = {
   version: number;
@@ -27,6 +29,14 @@ const MIGRATIONS: Migration[] = [
   {
     version: 4,
     sql: MIGRATION_004_CREATE_SALES,
+  },
+  {
+    version: 5,
+    sql: MIGRATION_005_CREATE_EXPENSES,
+  },
+  {
+    version: 6,
+    sql: MIGRATION_006_ADD_EXPENSE_TITLE,
   },
 ];
 

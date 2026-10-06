@@ -91,6 +91,23 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="expenses"
+        options={{
+          title: 'Expenses',
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{
+                ios: 'creditcard.fill',
+                android: 'payments',
+                web: 'payments',
+              }}
+              tintColor={color}
+              size={26}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="history"
         options={{
           title: 'History',

@@ -1,4 +1,6 @@
 const DATE_KEY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+const TYPED_ISO_DATE_PATTERN = /^(\d{4})-(\d{1,2})-(\d{1,2})$/;
+const TYPED_MONTH_FIRST_DATE_PATTERN = /^(\d{1,2})[/.-](\d{1,2})[/.-](\d{4})$/;
 const DATE_LABEL_LOCALE = 'en-PH';
 
 /** A calendar day on the shop phone, stored as ISO-8601 "YYYY-MM-DD". */
@@ -26,6 +28,33 @@ export function parseLocalDateKey(dateKey: LocalDateKey): Date {
   }
 
   return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
+/** Formats a day the way the cashier types it: MM/DD/YYYY. */
+export function formatTypedDate(dateKey: LocalDateKey): string {
+  const [year, month, day] = dateKey.split('-');
+  return `${month}/${day}/${year}`;
+}
+
+/** Reads MM/DD/YYYY (also with - or .) or YYYY-MM-DD. Null when it is not a real calendar day. */
+export function parseTypedDate(text: string): LocalDateKey | null {
+  const trimmed = text.trim();
+  const iso = TYPED_ISO_DATE_PATTERN.exec(trimmed);
+  const monthFirst = TYPED_MONTH_FIRST_DATE_PATTERN.exec(trimmed);
+  const parts = iso
+    ? { year: Number(iso[1]), month: Number(iso[2]), day: Number(iso[3]) }
+    : monthFirst
+      ? { year: Number(monthFirst[3]), month: Number(monthFirst[1]), day: Number(monthFirst[2]) }
+      : null;
+
+  if (!parts) {
+    return null;
+  }
+
+  const date = new Date(parts.year, parts.month - 1, parts.day);
+  const isRealDay =
+    date.getFullYear() === parts.year && date.getMonth() === parts.month - 1 && date.getDate() === parts.day;
+  return isRealDay ? toLocalDateKey(date) : null;
 }
 
 export function addDays(dateKey: LocalDateKey, days: number): LocalDateKey {

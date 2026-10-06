@@ -25,6 +25,7 @@ export default function HomeLayout() {
         }}
       />
       <Stack.Screen name="transactions" options={{ title: 'Transactions' }} />
+      <Stack.Screen name="reports" options={{ title: 'Reports' }} />
       <Stack.Screen name="sale/[id]" options={{ title: 'Sale' }} />
       <Stack.Screen name="purchase/[id]" options={{ title: 'Purchase' }} />
     </Stack>
