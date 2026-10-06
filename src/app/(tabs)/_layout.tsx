@@ -4,7 +4,7 @@ import { Tabs } from 'expo-router';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 export const unstable_settings = {
-  initialRouteName: 'products',
+  initialRouteName: 'home',
 };
 
 export default function TabLayout() {
@@ -22,6 +22,23 @@ export default function TabLayout() {
         },
       }}
     >
+      <Tabs.Screen
+        name="home"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{
+                ios: 'house.fill',
+                android: 'home',
+                web: 'home',
+              }}
+              tintColor={color}
+              size={26}
+            />
+          ),
+        }}
+      />
       <Tabs.Screen
         name="products"
         options={{
@@ -49,6 +66,23 @@ export default function TabLayout() {
                 ios: 'scalemass.fill',
                 android: 'scale',
                 web: 'scale',
+              }}
+              tintColor={color}
+              size={26}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="sell"
+        options={{
+          title: 'Sell',
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{
+                ios: 'tag.fill',
+                android: 'sell',
+                web: 'sell',
               }}
               tintColor={color}
               size={26}

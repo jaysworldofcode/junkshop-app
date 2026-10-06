@@ -7,7 +7,7 @@ import {
   createEmptyPurchaseLine,
   formatPurchaseNumber,
   hasPurchaseErrors,
-  sellerNameOrUnknown,
+  personNameOrUnknown,
   summarizePurchase,
   validatePurchaseDraft,
   type PurchaseDraft,
@@ -79,8 +79,8 @@ test('sums several lines into one ticket summary', () => {
 });
 
 test('stores a blank seller as Unknown', () => {
-  assert.equal(sellerNameOrUnknown('   '), 'Unknown');
-  assert.equal(sellerNameOrUnknown(' Pedro '), 'Pedro');
+  assert.equal(personNameOrUnknown('   '), 'Unknown');
+  assert.equal(personNameOrUnknown(' Pedro '), 'Pedro');
 });
 
 test('formats the display purchase number', () => {

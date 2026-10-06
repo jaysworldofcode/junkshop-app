@@ -157,12 +157,12 @@ Example: Seller Pedro; Material Copper; Quantity 35.5 kg; Buy Price ₱420/kg; P
 
 ## 10. Sell Scrap Screen
 
-- Buyer: saved person / manual name / walk-in / unknown.
-- Select purchase item/lot when possible.
+- Buyer: saved person / manual name / walk-in / unknown. Buyers are usually individual people, not companies.
+- Product (material). There is no stock and no purchase lot to pick.
 - Quantity sold.
 - Actual selling price per unit.
 - Actual sale total.
-- Allocated purchase cost.
+- Cost: quantity sold × the product's current buy price.
 - Actual profit — automatic.
 - Payment status/method.
 - Notes/photos.
@@ -299,6 +299,7 @@ SQLite storage choices used when coding:
 | other_cost | numeric(14,2) | |
 | total_amount | numeric(14,2) | |
 | payment_status | text | |
+| payment_method | text | nullable. cash, gcash, bank, other. One method per ticket until the payments table (Step 8) |
 | notes | text | nullable |
 | created_at | timestamptz | |
 | updated_at | timestamptz | |
@@ -309,14 +310,15 @@ SQLite storage choices used when coding:
 | --- | --- | --- |
 | id | uuid PK | |
 | sale_id | uuid | FK → sales.id |
-| purchase_item_id | uuid | nullable FK → purchase_items.id |
+| purchase_item_id | uuid | nullable FK → purchase_items.id. Left empty: Sell Scrap picks a product, not a purchase lot |
 | material_id | uuid | FK → materials.id |
 | quantity | numeric(14,3) | |
 | unit_sell_price | numeric(14,2) | |
 | sale_total | numeric(14,2) | |
-| allocated_purchase_cost | numeric(14,2) | |
+| allocated_purchase_cost | numeric(14,2) | quantity × the product's current buy price at the time of the sale |
 | actual_profit | numeric(14,2) | |
 | created_at | timestamptz | |
+| updated_at | timestamptz | |
 
 ### expenses
 

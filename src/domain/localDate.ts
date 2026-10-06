@@ -15,6 +15,10 @@ export function todayLocalDateKey(): LocalDateKey {
   return toLocalDateKey(new Date());
 }
 
+export function isLocalDateKey(value: unknown): value is LocalDateKey {
+  return typeof value === 'string' && DATE_KEY_PATTERN.test(value);
+}
+
 export function parseLocalDateKey(dateKey: LocalDateKey): Date {
   const match = DATE_KEY_PATTERN.exec(dateKey);
   if (!match) {

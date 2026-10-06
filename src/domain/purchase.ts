@@ -9,10 +9,11 @@ import {
   UNKNOWN_PERSON_NAME,
   type PurchaseItemStatus,
 } from '@/constants/purchase';
-import { compactDateKey, type LocalDateKey } from '@/domain/localDate';
+import type { LocalDateKey } from '@/domain/localDate';
 import { parsePesoInput } from '@/domain/money';
 import { amountForQuantity, parseQuantityInput } from '@/domain/quantity';
 import { optionalText } from '@/domain/text';
+import { formatTicketNumber } from '@/domain/ticketNumber';
 
 export type PurchaseLineDraft = {
   key: string;
@@ -137,13 +138,12 @@ export function summarizePurchase(lineFigures: PurchaseLineFigures[]): PurchaseS
   );
 }
 
-export function sellerNameOrUnknown(sellerName: string): string {
-  return optionalText(sellerName) ?? UNKNOWN_PERSON_NAME;
+export function personNameOrUnknown(name: string): string {
+  return optionalText(name) ?? UNKNOWN_PERSON_NAME;
 }
 
 export function formatPurchaseNumber(purchaseDate: LocalDateKey, sequence: number): string {
-  const paddedSequence = String(sequence).padStart(PURCHASE_SEQUENCE_DIGITS, '0');
-  return `${PURCHASE_NUMBER_PREFIX}-${compactDateKey(purchaseDate)}-${paddedSequence}`;
+  return formatTicketNumber(PURCHASE_NUMBER_PREFIX, PURCHASE_SEQUENCE_DIGITS, purchaseDate, sequence);
 }
 
 export function validatePurchaseDraft(draft: PurchaseDraft): PurchaseErrors {
@@ -240,7 +240,7 @@ export function buildNewPurchase(
   return {
     purchase: {
       id: purchaseId,
-      sellerName: sellerNameOrUnknown(draft.sellerName),
+      sellerName: personNameOrUnknown(draft.sellerName),
       purchaseDate: draft.purchaseDate,
       subtotal,
       otherCost: PURCHASE_OTHER_COST_CENTAVOS,

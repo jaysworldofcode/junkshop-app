@@ -4,6 +4,8 @@ export const PAYMENT_METHODS = ['cash', 'gcash', 'bank', 'other'] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
+export const UNSETTLED_PAYMENT_STATUSES: readonly PaymentStatus[] = ['unpaid', 'partial'];
+
 export const DEFAULT_PAYMENT_STATUS: PaymentStatus = 'paid';
 export const DEFAULT_PAYMENT_METHOD: PaymentMethod = 'cash';
 

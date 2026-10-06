@@ -19,6 +19,7 @@ import {
   SPACE_SM,
   SPACE_MD,
 } from '@/constants/layout';
+import type { PriceType } from '@/constants/price';
 import type { ProductPrices } from '@/domain/materialPrice';
 import { formatPeso } from '@/domain/money';
 import { normalizeProductKey, type Product, type ProductWithUsage } from '@/domain/product';
@@ -28,6 +29,7 @@ type ProductPickerModalProps = {
   visible: boolean;
   products: ProductWithUsage[];
   pricesByMaterial: Map<string, ProductPrices>;
+  priceType?: PriceType;
   selectedId: string | null;
   onSelect: (product: Product) => void;
   onClose: () => void;
@@ -52,6 +54,7 @@ export function ProductPickerModal({
   visible,
   products,
   pricesByMaterial,
+  priceType = 'buy',
   selectedId,
   onSelect,
   onClose,
@@ -120,7 +123,7 @@ export function ProductPickerModal({
             }
             renderItem={({ item }) => {
               const isSelected = item.id === selectedId;
-              const buyPrice = pricesByMaterial.get(item.id)?.buy;
+              const shownPrice = pricesByMaterial.get(item.id)?.[priceType];
               const details = [usageLabel(item), item.code, item.category].filter(Boolean).join(' · ');
 
               return (
@@ -148,8 +151,8 @@ export function ProductPickerModal({
                     ) : null}
                   </View>
                   <View style={styles.priceBox}>
-                    <Text style={[styles.priceLabel, { color: buyPrice ? colors.text : colors.inactive }]}>
-                      {buyPrice ? formatPeso(buyPrice.price) : 'No price'}
+                    <Text style={[styles.priceLabel, { color: shownPrice ? colors.text : colors.inactive }]}>
+                      {shownPrice ? formatPeso(shownPrice.price) : 'No price'}
                     </Text>
                     <Text style={[styles.unitLabel, { color: colors.muted }]}>per {item.unit}</Text>
                   </View>

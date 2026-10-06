@@ -4,6 +4,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { MIGRATION_001_CREATE_MATERIALS } from '@/db/migrations/001_create_materials';
 import { MIGRATION_002_CREATE_PURCHASES } from '@/db/migrations/002_create_purchases';
 import { MIGRATION_003_CREATE_MATERIAL_PRICES } from '@/db/migrations/003_create_material_prices';
+import { MIGRATION_004_CREATE_SALES } from '@/db/migrations/004_create_sales';
 
 type Migration = {
   version: number;
@@ -22,6 +23,10 @@ const MIGRATIONS: Migration[] = [
   {
     version: 3,
     sql: MIGRATION_003_CREATE_MATERIAL_PRICES,
+  },
+  {
+    version: 4,
+    sql: MIGRATION_004_CREATE_SALES,
   },
 ];
 
