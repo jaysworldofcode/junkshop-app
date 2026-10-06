@@ -1,0 +1,53 @@
+import { Platform } from 'react-native';
+import type { SQLiteDatabase } from 'expo-sqlite';
+
+import { MIGRATION_001_CREATE_MATERIALS } from '@/db/migrations/001_create_materials';
+import { MIGRATION_002_CREATE_PURCHASES } from '@/db/migrations/002_create_purchases';
+import { MIGRATION_003_CREATE_MATERIAL_PRICES } from '@/db/migrations/003_create_material_prices';
+
+type Migration = {
+  version: number;
+  sql: string;
+};
+
+const MIGRATIONS: Migration[] = [
+  {
+    version: 1,
+    sql: MIGRATION_001_CREATE_MATERIALS,
+  },
+  {
+    version: 2,
+    sql: MIGRATION_002_CREATE_PURCHASES,
+  },
+  {
+    version: 3,
+    sql: MIGRATION_003_CREATE_MATERIAL_PRICES,
+  },
+];
+
+export async function applyMigrations(database: SQLiteDatabase): Promise<void> {
+  await enableWalWhenSupported(database);
+  await database.execAsync('PRAGMA foreign_keys = ON;');
+
+  const versionRow = await database.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
+  let currentVersion = versionRow?.user_version ?? 0;
+
+  for (const migration of MIGRATIONS) {
+    if (migration.version <= currentVersion) {
+      continue;
+    }
+
+    await database.execAsync(migration.sql);
+    await database.execAsync(`PRAGMA user_version = ${migration.version}`);
+    currentVersion = migration.version;
+  }
+}
+
+async function enableWalWhenSupported(database: SQLiteDatabase): Promise<void> {
+  // WAL is a native SQLite feature. The web build may reject this PRAGMA.
+  if (Platform.OS === 'web') {
+    return;
+  }
+
+  await database.execAsync("PRAGMA journal_mode = 'wal';");
+}
