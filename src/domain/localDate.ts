@@ -83,3 +83,14 @@ export function formatDateLabel(dateKey: LocalDateKey): string {
     year: 'numeric',
   }).format(parseLocalDateKey(dateKey));
 }
+
+/** "Oct 6, 2026, 6:36 PM" from an ISO timestamp, in the phone's time zone. */
+export function formatTimestampLabel(isoTimestamp: string): string {
+  return new Intl.DateTimeFormat(DATE_LABEL_LOCALE, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+  }).format(new Date(isoTimestamp));
+}

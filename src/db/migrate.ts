@@ -7,6 +7,7 @@ import { MIGRATION_003_CREATE_MATERIAL_PRICES } from '@/db/migrations/003_create
 import { MIGRATION_004_CREATE_SALES } from '@/db/migrations/004_create_sales';
 import { MIGRATION_005_CREATE_EXPENSES } from '@/db/migrations/005_create_expenses';
 import { MIGRATION_006_ADD_EXPENSE_TITLE } from '@/db/migrations/006_add_expense_title';
+import { MIGRATION_007_CREATE_SYNC_METADATA } from '@/db/migrations/007_create_sync_metadata';
 
 type Migration = {
   version: number;
@@ -38,7 +39,13 @@ const MIGRATIONS: Migration[] = [
     version: 6,
     sql: MIGRATION_006_ADD_EXPENSE_TITLE,
   },
+  {
+    version: 7,
+    sql: MIGRATION_007_CREATE_SYNC_METADATA,
+  },
 ];
+
+export const LATEST_SCHEMA_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
 
 export async function applyMigrations(database: SQLiteDatabase): Promise<void> {
   await enableWalWhenSupported(database);

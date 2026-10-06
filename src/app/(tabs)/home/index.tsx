@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 
+import { useHasBusinessData } from '@/backup/useHasBusinessData';
 import { DateRangeFilter } from '@/components/DateRangeFilter';
 import { DetailRow } from '@/components/DetailRow';
 import { ErrorBanner } from '@/components/ErrorBanner';
