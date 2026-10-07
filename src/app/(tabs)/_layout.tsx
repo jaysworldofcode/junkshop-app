@@ -74,23 +74,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="sell"
-        options={{
-          title: 'Sell',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'tag.fill',
-                android: 'sell',
-                web: 'sell',
-              }}
-              tintColor={color}
-              size={26}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="expenses"
         options={{
           title: 'Expenses',
@@ -117,6 +100,23 @@ export default function TabLayout() {
                 ios: 'clock.fill',
                 android: 'history',
                 web: 'history',
+              }}
+              tintColor={color}
+              size={26}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="sell"
+        options={{
+          title: 'Sell',
+          tabBarIcon: ({ color }) => (
+            <SymbolView
+              name={{
+                ios: 'tag.fill',
+                android: 'sell',
+                web: 'sell',
               }}
               tintColor={color}
               size={26}
