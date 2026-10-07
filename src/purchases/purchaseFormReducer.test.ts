@@ -81,3 +81,20 @@ test('resets to a fresh ticket on the same date after saving', () => {
   assert.notEqual(state.draft.lines[0].key, oldKey);
   assert.equal(state.lastSaved?.purchaseNumber, 'P-20261005-001');
 });
+
+test('picking a saved seller links them, and typing a new name unlinks them', () => {
+  let state = createPurchaseFormState(TODAY);
+  state = purchaseFormReducer(state, { type: 'pickSeller', personId: 'person-1', name: 'Pedro' });
+  assert.equal(state.draft.sellerId, 'person-1');
+  assert.equal(state.draft.sellerName, 'Pedro');
+
+  state = purchaseFormReducer(state, { type: 'changeHeader', field: 'sellerName', value: 'Pedro S' });
+  assert.equal(state.draft.sellerId, null);
+
+  state = purchaseFormReducer(state, { type: 'pickSeller', personId: 'person-1', name: 'Pedro' });
+  state = purchaseFormReducer(state, {
+    type: 'submitSuccess',
+    saved: { id: 'purchase-1', purchaseNumber: 'P-20261006-001', sellerName: 'Pedro', totalAmount: 1, lineCount: 1 },
+  });
+  assert.equal(state.draft.sellerId, null);
+});

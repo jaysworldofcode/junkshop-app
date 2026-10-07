@@ -15,6 +15,7 @@ export type SaleFormState = {
 
 export type SaleFormAction =
   | { type: 'changeHeader'; field: SaleHeaderField; value: string }
+  | { type: 'pickBuyer'; personId: string; name: string }
   | { type: 'changeLine'; key: string; field: SaleLineField; value: string }
   | { type: 'selectProduct'; key: string; materialId: string; sellPrice: string }
   | { type: 'addLine' }
@@ -36,6 +37,7 @@ export function createSaleFormState(saleDate: LocalDateKey): SaleFormState {
     draft: {
       saleDate,
       buyerName: '',
+      buyerId: null,
       lines: [createEmptySaleLine(lineKey(FIRST_LINE_NUMBER))],
       paymentStatus: DEFAULT_PAYMENT_STATUS,
       paymentMethod: DEFAULT_PAYMENT_METHOD,
@@ -54,8 +56,20 @@ export function saleFormReducer(state: SaleFormState, action: SaleFormAction): S
     case 'changeHeader':
       return {
         ...state,
-        draft: { ...state.draft, [action.field]: action.value },
+        draft: {
+          ...state.draft,
+          [action.field]: action.value,
+          ...(action.field === 'buyerName' ? { buyerId: null } : {}),
+        },
         errors: { ...state.errors, [action.field]: undefined },
+        submitError: null,
+        lastSaved: null,
+      };
+    case 'pickBuyer':
+      return {
+        ...state,
+        draft: { ...state.draft, buyerId: action.personId, buyerName: action.name },
+        errors: { ...state.errors, buyerName: undefined },
         submitError: null,
         lastSaved: null,
       };

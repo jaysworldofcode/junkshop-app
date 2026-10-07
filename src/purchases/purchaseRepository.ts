@@ -20,10 +20,11 @@ export async function savePurchase(database: SQLiteDatabase, { purchase, items }
       `INSERT INTO purchases (
          id, purchase_number, seller_id, seller_name, purchase_date, subtotal, other_cost,
          total_amount, payment_status, payment_method, notes, created_at, updated_at
-       ) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         purchase.id,
         purchaseNumber,
+        purchase.sellerId,
         purchase.sellerName,
         purchase.purchaseDate,
         purchase.subtotal,

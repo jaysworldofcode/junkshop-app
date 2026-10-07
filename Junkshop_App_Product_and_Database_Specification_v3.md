@@ -835,7 +835,7 @@ Database: `attachments`.
 - [x] Step 4. POS: Sell Scrap
 - [ ] Step 5. Expenses
 - [x] Step 6. Dashboard
-- [ ] Step 7. People
+- [x] Step 7. People
 - [ ] Step 8. Payments
 - [ ] Step 9. Price history
 - [ ] Step 10. Sync identity
@@ -845,3 +845,8 @@ Database: `attachments`.
 - [ ] Step 14. Reports
 - [ ] Step 15. Daily cash closing
 - [ ] Step 16. Attachments
+
+
+How to build:
+
+C:\Projects\junkshop-app\android>.\gradlew.bat assembleRelease

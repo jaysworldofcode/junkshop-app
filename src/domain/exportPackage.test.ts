@@ -18,6 +18,7 @@ function samplePackage(overrides: Partial<ExportPackage['manifest']> = {}): Expo
   const tables: ExportTables = {
     materials: [{ id: 'm1', name: 'Copper', unit: 'kg', is_active: 1 }],
     material_prices: [],
+    people: [],
     purchases: [{ id: 'p1', total_amount: 12500, notes: null }],
     purchase_items: [],
     sales: [],
@@ -62,6 +63,23 @@ test('rejects an export whose counts do not match its rows', () => {
   const exportPackage = samplePackage();
   exportPackage.manifest.recordCounts.purchases = 2;
   assert.throws(() => parseExportPackage(serializeExportPackage(exportPackage), SCHEMA_VERSION), /incomplete/);
+});
+
+test('reads exports made before People existed', () => {
+  const older = JSON.parse(serializeExportPackage(samplePackage()));
+  delete older.tables.people;
+  delete older.manifest.recordCounts.people;
+
+  const parsed = parseExportPackage(JSON.stringify(older), SCHEMA_VERSION);
+  assert.deepEqual(parsed.tables.people, []);
+  assert.equal(parsed.manifest.recordCounts.people, 0);
+  assert.equal(parsed.tables.purchases.length, 1);
+});
+
+test('still rejects an export missing a table it always had', () => {
+  const broken = JSON.parse(serializeExportPackage(samplePackage()));
+  delete broken.tables.sales;
+  assert.throws(() => parseExportPackage(JSON.stringify(broken), SCHEMA_VERSION), /missing sales/);
 });
 
 test('rejects rows without an id or with nested values', () => {

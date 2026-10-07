@@ -35,3 +35,16 @@ test('a saved sale starts a fresh ticket on the same date', () => {
   assert.equal(state.draft.lines.length, 1);
   assert.equal(state.lastSaved?.saleNumber, 'S-20261005-001');
 });
+
+test('picking a saved buyer links them, and typing a new name unlinks them', () => {
+  let state = createSaleFormState('2026-10-06');
+  state = saleFormReducer(state, { type: 'pickBuyer', personId: 'person-1', name: 'ABC Recycling' });
+  assert.equal(state.draft.buyerId, 'person-1');
+  assert.equal(state.draft.buyerName, 'ABC Recycling');
+
+  state = saleFormReducer(state, { type: 'changeHeader', field: 'notes', value: 'Truck 2' });
+  assert.equal(state.draft.buyerId, 'person-1');
+
+  state = saleFormReducer(state, { type: 'changeHeader', field: 'buyerName', value: 'ABC Recycling Inc' });
+  assert.equal(state.draft.buyerId, null);
+});

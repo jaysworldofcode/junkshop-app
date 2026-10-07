@@ -6,6 +6,7 @@ import { DateStepper } from '@/components/DateStepper';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { FigureRow } from '@/components/FigureRow';
 import { FormField } from '@/components/FormField';
+import { PersonNameField } from '@/components/PersonNameField';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { PrintStatusNotice } from '@/components/PrintStatusNotice';
 import { ProductPickerModal } from '@/components/ProductPickerModal';
@@ -20,7 +21,6 @@ import {
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUSES,
 } from '@/constants/payment';
-import { UNKNOWN_PERSON_NAME } from '@/constants/purchase';
 import { NO_PRICES } from '@/domain/materialPrice';
 import { formatPeso, formatPesoInput } from '@/domain/money';
 import type { Product } from '@/domain/product';
@@ -105,16 +105,16 @@ export default function SellScrapScreen() {
               onChange={(value) => dispatch({ type: 'changeHeader', field: 'saleDate', value })}
               disabled={isSubmitting}
             />
-            <FormField
+            <PersonNameField
+              role="buyer"
               label="Buyer name"
               placeholder="e.g. Juan"
-              hint={`Leave blank to save as ${UNKNOWN_PERSON_NAME}.`}
-              value={draft.buyerName}
-              onChangeText={(value) => dispatch({ type: 'changeHeader', field: 'buyerName', value })}
+              name={draft.buyerName}
+              personId={draft.buyerId}
               error={errors.buyerName}
-              autoCapitalize="words"
-              autoCorrect={false}
-              editable={!isSubmitting}
+              disabled={isSubmitting}
+              onChangeName={(value) => dispatch({ type: 'changeHeader', field: 'buyerName', value })}
+              onPick={(person) => dispatch({ type: 'pickBuyer', personId: person.id, name: person.name })}
             />
           </SectionCard>
 

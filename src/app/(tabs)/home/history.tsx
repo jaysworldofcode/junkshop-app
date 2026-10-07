@@ -19,7 +19,7 @@ export default function PurchaseHistoryScreen() {
   const today = todayLocalDateKey();
 
   const openPurchase = useCallback((purchase: PurchaseListEntry) => {
-    router.push({ pathname: '/history/[id]', params: { id: purchase.id } });
+    router.push({ pathname: '/home/purchase/[id]', params: { id: purchase.id } });
   }, []);
 
   return (

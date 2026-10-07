@@ -10,7 +10,7 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/domain/money.test.ts src/domain/quantity.test.ts src/domain/product.test.ts src/products/productFormReducer.test.ts src/domain/decimal.test.ts src/domain/purchase.test.ts src/purchases/purchaseFormReducer.test.ts src/domain/materialPrice.test.ts src/domain/purchaseHistory.test.ts src/domain/sale.test.ts src/domain/dashboard.test.ts src/domain/dateRange.test.ts src/sales/saleFormReducer.test.ts src/domain/expense.test.ts src/domain/priceHistory.test.ts src/domain/localDate.test.ts src/domain/exportPackage.test.ts src/domain/receipt.test.ts"
+    "test": "tsx --test src/domain/money.test.ts src/domain/quantity.test.ts src/domain/product.test.ts src/products/productFormReducer.test.ts src/domain/decimal.test.ts src/domain/purchase.test.ts src/purchases/purchaseFormReducer.test.ts src/domain/materialPrice.test.ts src/domain/purchaseHistory.test.ts src/domain/sale.test.ts src/domain/dashboard.test.ts src/domain/dateRange.test.ts src/sales/saleFormReducer.test.ts src/domain/expense.test.ts src/domain/priceHistory.test.ts src/domain/localDate.test.ts src/domain/exportPackage.test.ts src/domain/receipt.test.ts src/domain/person.test.ts"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",

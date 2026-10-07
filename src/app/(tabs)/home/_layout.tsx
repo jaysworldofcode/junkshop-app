@@ -3,6 +3,10 @@ import { Stack } from 'expo-router';
 import { ThemeToggleButton } from '@/components/ThemeToggleButton';
 import { useAppTheme } from '@/theme/useAppTheme';
 
+export const unstable_settings = {
+  initialRouteName: 'index',
+};
+
 export default function HomeLayout() {
   const { colors } = useAppTheme();
 
@@ -28,6 +32,10 @@ export default function HomeLayout() {
       <Stack.Screen name="reports" options={{ title: 'Reports' }} />
       <Stack.Screen name="data" options={{ title: 'Backup & transfer' }} />
       <Stack.Screen name="printer" options={{ title: 'Printer' }} />
+      <Stack.Screen name="people/index" options={{ title: 'People' }} />
+      <Stack.Screen name="people/new" options={{ title: 'Add person' }} />
+      <Stack.Screen name="people/[id]" options={{ title: 'Edit person' }} />
+      <Stack.Screen name="history" options={{ title: 'Purchase history' }} />
       <Stack.Screen name="sale/[id]" options={{ title: 'Sale' }} />
       <Stack.Screen name="purchase/[id]" options={{ title: 'Purchase' }} />
     </Stack>

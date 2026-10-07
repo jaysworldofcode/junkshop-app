@@ -3,6 +3,7 @@ import {
   EXPORT_FORMAT,
   EXPORT_FORMAT_VERSION,
   EXPORT_TABLES,
+  OPTIONAL_EXPORT_TABLES,
   type ExportTable,
 } from '@/constants/dataTransfer';
 
@@ -106,7 +107,7 @@ function parseManifest(value: unknown): ExportManifest {
 
   const counts = {} as RecordCounts;
   for (const table of EXPORT_TABLES) {
-    const count = recordCounts[table];
+    const count = recordCounts[table] ?? (OPTIONAL_EXPORT_TABLES.includes(table) ? 0 : undefined);
     if (typeof count !== 'number' || !Number.isInteger(count) || count < 0) {
       throw new ExportPackageError('This export has a damaged summary.');
     }
@@ -131,7 +132,7 @@ function parseTables(value: unknown): ExportTables {
 
   const tables = {} as ExportTables;
   for (const table of EXPORT_TABLES) {
-    const rows = value[table];
+    const rows = value[table] ?? (OPTIONAL_EXPORT_TABLES.includes(table) ? [] : undefined);
     if (!Array.isArray(rows)) {
       throw new ExportPackageError(`This export is missing ${table}.`);
     }

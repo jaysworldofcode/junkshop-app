@@ -11,6 +11,7 @@ import { PrimaryButton } from '@/components/PrimaryButton';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { StatTile } from '@/components/StatTile';
+import { TopSellersCard } from '@/components/TopSellersCard';
 import { WarningNotice } from '@/components/WarningNotice';
 import { DEFAULT_DATE_RANGE_PRESET, type DateRangePreset } from '@/constants/dateRange';
 import { FONT_SIZE_CAPTION, FONT_SIZE_DISPLAY, RADIUS_LG, SPACE_XS, SPACE_SM, SPACE_MD, SPACE_LG } from '@/constants/layout';
@@ -98,6 +99,8 @@ export default function DashboardScreen() {
               <DetailRow label="Purchases" value={ticketCount(data.unsettledPurchases, 'ticket')} />
             </SectionCard>
 
+            <TopSellersCard range={range} />
+
             <PrimaryButton
               label={transactionCount > 0 ? `View ${ticketCount(transactionCount, 'transaction')}` : 'No transactions yet'}
               variant="outline"
@@ -122,6 +125,18 @@ export default function DashboardScreen() {
               variant="outline"
               icon={{ ios: 'printer.fill', android: 'print', web: 'print' }}
               onPress={() => router.push('/home/printer')}
+            />
+            <PrimaryButton
+              label="People"
+              variant="outline"
+              icon={{ ios: 'person.2.fill', android: 'group', web: 'group' }}
+              onPress={() => router.push('/home/people')}
+            />
+            <PrimaryButton
+              label="Purchase history"
+              variant="outline"
+              icon={{ ios: 'clock.fill', android: 'history', web: 'history' }}
+              onPress={() => router.push('/home/history')}
             />
           </>
         ) : null}

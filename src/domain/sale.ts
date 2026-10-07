@@ -21,6 +21,8 @@ export type SaleLineField = 'quantity' | 'sellPrice';
 export type SaleDraft = {
   saleDate: LocalDateKey;
   buyerName: string;
+  /** Set when the buyer was picked from People. Typing a different name clears it. */
+  buyerId: string | null;
   lines: SaleLineDraft[];
   paymentStatus: PaymentStatus;
   paymentMethod: PaymentMethod;
@@ -52,6 +54,7 @@ export type SaleErrors = {
 
 export type SaleRecord = {
   id: string;
+  buyerId: string | null;
   buyerName: string;
   saleDate: LocalDateKey;
   subtotal: number;
@@ -217,6 +220,7 @@ export function buildNewSale(
   return {
     sale: {
       id: saleId,
+      buyerId: draft.buyerId,
       buyerName: personNameOrUnknown(draft.buyerName),
       saleDate: draft.saleDate,
       subtotal,

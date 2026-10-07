@@ -21,6 +21,7 @@ export type PurchaseFormState = {
 
 export type PurchaseFormAction =
   | { type: 'changeHeader'; field: PurchaseHeaderField; value: string }
+  | { type: 'pickSeller'; personId: string; name: string }
   | { type: 'changeLine'; key: string; field: PurchaseLineField; value: string }
   | { type: 'selectProduct'; key: string; materialId: string; buyPrice: string; supplierPrice: string }
   | { type: 'addLine' }
@@ -42,6 +43,7 @@ export function createPurchaseFormState(purchaseDate: LocalDateKey): PurchaseFor
     draft: {
       purchaseDate,
       sellerName: '',
+      sellerId: null,
       lines: [createEmptyPurchaseLine(lineKey(FIRST_LINE_NUMBER))],
       paymentStatus: DEFAULT_PAYMENT_STATUS,
       paymentMethod: DEFAULT_PAYMENT_METHOD,
@@ -60,8 +62,20 @@ export function purchaseFormReducer(state: PurchaseFormState, action: PurchaseFo
     case 'changeHeader':
       return {
         ...state,
-        draft: { ...state.draft, [action.field]: action.value },
+        draft: {
+          ...state.draft,
+          [action.field]: action.value,
+          ...(action.field === 'sellerName' ? { sellerId: null } : {}),
+        },
         errors: { ...state.errors, [action.field]: undefined },
+        submitError: null,
+        lastSaved: null,
+      };
+    case 'pickSeller':
+      return {
+        ...state,
+        draft: { ...state.draft, sellerId: action.personId, sellerName: action.name },
+        errors: { ...state.errors, sellerName: undefined },
         submitError: null,
         lastSaved: null,
       };

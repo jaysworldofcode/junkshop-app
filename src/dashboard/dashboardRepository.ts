@@ -4,6 +4,7 @@ import { UNSETTLED_PAYMENT_STATUSES, type PaymentMethod, type PaymentStatus } fr
 import { UNKNOWN_PERSON_NAME } from '@/constants/purchase';
 import type { DateRange } from '@/domain/dateRange';
 import { mergeTransactions, type PeriodTotals, type SaleDetail, type TransactionEntry } from '@/domain/dashboard';
+import type { SellerPurchase } from '@/domain/person';
 
 const UNSETTLED_STATUS_SQL = UNSETTLED_PAYMENT_STATUSES.map((status) => `'${status}'`).join(', ');
 
@@ -132,6 +133,33 @@ export async function listTransactions(database: SQLiteDatabase, { from, to }: D
     toEntries(saleRows, groupNames(saleNames), 'sale'),
     toEntries(purchaseRows, groupNames(purchaseNames), 'purchase')
   );
+}
+
+type SellerPurchaseRow = {
+  seller_id: string | null;
+  person_name: string | null;
+  seller_name: string | null;
+  total_amount: number;
+};
+
+export async function listSellerPurchases(
+  database: SQLiteDatabase,
+  { from, to }: DateRange
+): Promise<SellerPurchase[]> {
+  const rows = await database.getAllAsync<SellerPurchaseRow>(
+    `SELECT pu.seller_id, pe.name AS person_name, pu.seller_name, pu.total_amount
+     FROM purchases pu
+     LEFT JOIN people pe ON pe.id = pu.seller_id
+     WHERE pu.purchase_date BETWEEN ? AND ?`,
+    [from, to]
+  );
+
+  return rows.map((row) => ({
+    sellerId: row.person_name === null ? null : row.seller_id,
+    personName: row.person_name,
+    sellerName: row.seller_name,
+    totalAmount: row.total_amount,
+  }));
 }
 
 type SaleHeaderRow = {

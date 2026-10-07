@@ -13,10 +13,11 @@ export async function saveSale(database: SQLiteDatabase, { sale, items }: NewSal
       `INSERT INTO sales (
          id, sale_number, buyer_id, buyer_name, sale_date, subtotal, other_cost,
          total_amount, payment_status, payment_method, notes, created_at, updated_at
-       ) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         sale.id,
         saleNumber,
+        sale.buyerId,
         sale.buyerName,
         sale.saleDate,
         sale.subtotal,

@@ -5,6 +5,7 @@ export const EXPORT_FORMAT_VERSION = 1;
 export const EXPORT_TABLES = [
   'materials',
   'material_prices',
+  'people',
   'purchases',
   'purchase_items',
   'sales',
@@ -14,9 +15,13 @@ export const EXPORT_TABLES = [
 
 export type ExportTable = (typeof EXPORT_TABLES)[number];
 
+/** Tables added after the first app release. Exports from older versions do not have them, so they import as empty. */
+export const OPTIONAL_EXPORT_TABLES: readonly ExportTable[] = ['people'];
+
 export const EXPORT_TABLE_LABELS: Record<ExportTable, string> = {
   materials: 'Products',
   material_prices: 'Price records',
+  people: 'People',
   purchases: 'Purchases',
   purchase_items: 'Purchase items',
   sales: 'Sales',

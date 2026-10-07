@@ -91,23 +91,6 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="history"
-        options={{
-          title: 'History',
-          tabBarIcon: ({ color }) => (
-            <SymbolView
-              name={{
-                ios: 'clock.fill',
-                android: 'history',
-                web: 'history',
-              }}
-              tintColor={color}
-              size={26}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
         name="sell"
         options={{
           title: 'Sell',

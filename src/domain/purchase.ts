@@ -29,6 +29,8 @@ export type PurchaseLineField = Exclude<keyof PurchaseLineDraft, 'key'>;
 export type PurchaseDraft = {
   purchaseDate: LocalDateKey;
   sellerName: string;
+  /** Set when the seller was picked from People. Typing a different name clears it. */
+  sellerId: string | null;
   lines: PurchaseLineDraft[];
   paymentStatus: PaymentStatus;
   paymentMethod: PaymentMethod;
@@ -60,6 +62,7 @@ export type PurchaseErrors = {
 
 export type PurchaseRecord = {
   id: string;
+  sellerId: string | null;
   sellerName: string;
   purchaseDate: LocalDateKey;
   subtotal: number;
@@ -241,6 +244,7 @@ export function buildNewPurchase(
   return {
     purchase: {
       id: purchaseId,
+      sellerId: draft.sellerId,
       sellerName: personNameOrUnknown(draft.sellerName),
       purchaseDate: draft.purchaseDate,
       subtotal,

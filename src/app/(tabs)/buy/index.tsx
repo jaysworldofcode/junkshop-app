@@ -7,6 +7,7 @@ import { DateStepper } from '@/components/DateStepper';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { FigureRow } from '@/components/FigureRow';
 import { FormField } from '@/components/FormField';
+import { PersonNameField } from '@/components/PersonNameField';
 import { PrimaryButton } from '@/components/PrimaryButton';
 import { PrintStatusNotice } from '@/components/PrintStatusNotice';
 import { ProductPickerModal } from '@/components/ProductPickerModal';
@@ -21,7 +22,6 @@ import {
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUSES,
 } from '@/constants/payment';
-import { UNKNOWN_PERSON_NAME } from '@/constants/purchase';
 import { NO_PRICES } from '@/domain/materialPrice';
 import { formatPeso, formatPesoInput } from '@/domain/money';
 import type { Product } from '@/domain/product';
@@ -97,7 +97,7 @@ export default function BuyScrapScreen() {
                 onPress: () => {
                   const purchaseId = state.lastSaved?.id;
                   if (purchaseId) {
-                    router.navigate({ pathname: '/history/[id]', params: { id: purchaseId } });
+                    router.navigate({ pathname: '/home/purchase/[id]', params: { id: purchaseId } });
                   }
                 },
               }}
@@ -116,16 +116,16 @@ export default function BuyScrapScreen() {
               onChange={(value) => dispatch({ type: 'changeHeader', field: 'purchaseDate', value })}
               disabled={isSubmitting}
             />
-            <FormField
+            <PersonNameField
+              role="seller"
               label="Seller name"
               placeholder="e.g. Pedro"
-              hint={`Leave blank to save as ${UNKNOWN_PERSON_NAME}.`}
-              value={draft.sellerName}
-              onChangeText={(value) => dispatch({ type: 'changeHeader', field: 'sellerName', value })}
+              name={draft.sellerName}
+              personId={draft.sellerId}
               error={errors.sellerName}
-              autoCapitalize="words"
-              autoCorrect={false}
-              editable={!isSubmitting}
+              disabled={isSubmitting}
+              onChangeName={(value) => dispatch({ type: 'changeHeader', field: 'sellerName', value })}
+              onPick={(person) => dispatch({ type: 'pickSeller', personId: person.id, name: person.name })}
             />
           </SectionCard>
 
