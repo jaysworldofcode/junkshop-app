@@ -3,7 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { UNSETTLED_PAYMENT_STATUSES, type PaymentMethod, type PaymentStatus } from '@/constants/payment';
 import { UNKNOWN_PERSON_NAME } from '@/constants/purchase';
 import type { DateRange } from '@/domain/dateRange';
-import { mergeTransactions, type PeriodTotals, type SaleDetail, type TransactionEntry } from '@/domain/dashboard';
+import { breakDownProfit, mergeTransactions, type PeriodTotals, type SaleDetail, type TransactionEntry } from '@/domain/dashboard';
 import type { SellerPurchase } from '@/domain/person';
 
 const UNSETTLED_STATUS_SQL = UNSETTLED_PAYMENT_STATUSES.map((status) => `'${status}'`).join(', ');
@@ -11,7 +11,7 @@ const UNSETTLED_STATUS_SQL = UNSETTLED_PAYMENT_STATUSES.map((status) => `'${stat
 type TicketTotalsRow = { ticket_count: number; total: number | null; unsettled_count: number | null };
 
 export async function getPeriodTotals(database: SQLiteDatabase, { from, to }: DateRange): Promise<PeriodTotals> {
-  const [purchases, sales, profit, expenses] = await Promise.all([
+  const [purchases, sales, profit, buyProfit, expenses] = await Promise.all([
     database.getFirstAsync<TicketTotalsRow>(
       `SELECT COUNT(*) AS ticket_count, SUM(total_amount) AS total,
               SUM(CASE WHEN payment_status IN (${UNSETTLED_STATUS_SQL}) THEN 1 ELSE 0 END) AS unsettled_count
@@ -33,6 +33,14 @@ export async function getPeriodTotals(database: SQLiteDatabase, { from, to }: Da
        WHERE s.sale_date BETWEEN ? AND ?`,
       [from, to]
     ),
+    database.getFirstAsync<{ total: number | null; missing_count: number | null }>(
+      `SELECT SUM(pi.expected_profit) AS total,
+              SUM(CASE WHEN pi.expected_profit IS NULL THEN 1 ELSE 0 END) AS missing_count
+       FROM purchase_items pi
+       JOIN purchases p ON p.id = pi.purchase_id
+       WHERE p.purchase_date BETWEEN ? AND ? AND pi.status <> 'cancelled'`,
+      [from, to]
+    ),
     database.getFirstAsync<{ expense_count: number; total: number | null }>(
       'SELECT COUNT(*) AS expense_count, SUM(amount) AS total FROM expenses WHERE expense_date BETWEEN ? AND ?',
       [from, to]
@@ -40,6 +48,7 @@ export async function getPeriodTotals(database: SQLiteDatabase, { from, to }: Da
   ]);
 
   const realizedProfit = profit?.total ?? 0;
+  const buyProfitTotal = buyProfit?.total ?? 0;
   const expenseTotal = expenses?.total ?? 0;
 
   return {
@@ -48,9 +57,11 @@ export async function getPeriodTotals(database: SQLiteDatabase, { from, to }: Da
     saleCount: sales?.ticket_count ?? 0,
     saleTotal: sales?.total ?? 0,
     realizedProfit,
+    buyProfit: buyProfitTotal,
+    buyItemsWithoutSupplierPrice: buyProfit?.missing_count ?? 0,
     expenseCount: expenses?.expense_count ?? 0,
     expenseTotal,
-    netProfit: realizedProfit - expenseTotal,
+    ...breakDownProfit(realizedProfit, buyProfitTotal, expenseTotal),
     unsettledPurchases: purchases?.unsettled_count ?? 0,
     unsettledSales: sales?.unsettled_count ?? 0,
   };

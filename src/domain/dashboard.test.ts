@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { mergeTransactions, sumSaleItems, type TransactionEntry } from './dashboard';
+import { breakDownProfit, mergeTransactions, sumSaleItems, type TransactionEntry } from './dashboard';
 
 function entry(kind: TransactionEntry['kind'], id: string, date: string, createdAt: string): TransactionEntry {
   return {
@@ -37,4 +37,16 @@ test('sums the cost and profit of a sale', () => {
   ]);
 
   assert.deepEqual(totals, { cost: 450_000, profit: 55_000 });
+});
+
+test('adds sale and buy profit, then takes off expenses', () => {
+  assert.deepEqual(breakDownProfit(120_000, 115_000, 30_000), {
+    totalProfit: 235_000,
+    profitAfterExpenses: 205_000,
+    netProfit: 90_000,
+  });
+});
+
+test('profit after expenses can go below zero', () => {
+  assert.equal(breakDownProfit(0, 10_000, 25_000).profitAfterExpenses, -15_000);
 });

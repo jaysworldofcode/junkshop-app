@@ -7,13 +7,31 @@ export type PeriodTotals = {
   purchaseTotal: number;
   saleCount: number;
   saleTotal: number;
+  /** Sell price minus buy price on sale lines. */
   realizedProfit: number;
+  /** Supplier price minus buy price on purchase lines. */
+  buyProfit: number;
+  buyItemsWithoutSupplierPrice: number;
+  totalProfit: number;
   expenseCount: number;
   expenseTotal: number;
+  profitAfterExpenses: number;
+  /** Realized profit minus expenses. */
   netProfit: number;
   unsettledPurchases: number;
   unsettledSales: number;
 };
+
+export type ProfitBreakdown = Pick<PeriodTotals, 'totalProfit' | 'profitAfterExpenses' | 'netProfit'>;
+
+export function breakDownProfit(realizedProfit: number, buyProfit: number, expenseTotal: number): ProfitBreakdown {
+  const totalProfit = realizedProfit + buyProfit;
+  return {
+    totalProfit,
+    profitAfterExpenses: totalProfit - expenseTotal,
+    netProfit: realizedProfit - expenseTotal,
+  };
+}
 
 export type TransactionEntry = {
   kind: TransactionKind;

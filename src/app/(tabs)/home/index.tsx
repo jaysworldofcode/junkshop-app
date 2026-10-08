@@ -64,19 +64,31 @@ export default function DashboardScreen() {
 
         <View style={[styles.hero, { backgroundColor: colors.primarySoft }]}>
           <Text style={[styles.heroLabel, { color: colors.muted }]}>{formatRangeLabel(range, today).toUpperCase()}</Text>
-          <Text style={[styles.heroCaption, { color: colors.text }]}>Net profit</Text>
+          <Text style={[styles.heroCaption, { color: colors.text }]}>Total profit</Text>
           {data ? (
             <>
-              <Text style={[styles.heroValue, { color: data.netProfit < 0 ? colors.danger : colors.primary }]}>
-                {formatPeso(data.netProfit)}
+              <Text style={[styles.heroValue, { color: data.totalProfit < 0 ? colors.danger : colors.primary }]}>
+                {formatPeso(data.totalProfit)}
               </Text>
               <View style={styles.heroFigures}>
-                <FigureRow label="Realized profit" centavos={data.realizedProfit} tone="profit" />
+                <FigureRow label="Profit from sales" centavos={data.realizedProfit} tone="profit" />
+                <FigureRow label="Profit from buys" centavos={data.buyProfit} tone="profit" />
+                <View style={[styles.heroRule, { backgroundColor: colors.border }]} />
                 <FigureRow label="Expenses" centavos={-data.expenseTotal} tone="profit" />
+                <FigureRow label="Profit after expenses" centavos={data.profitAfterExpenses} tone="profit" emphasized />
+                <View style={[styles.heroRule, { backgroundColor: colors.border }]} />
+                <FigureRow label="Spent on materials" centavos={data.purchaseTotal} />
               </View>
               <Text style={[styles.heroCaption, { color: colors.muted }]}>
-                Profit on {ticketCount(data.saleCount, 'sale')} minus {ticketCount(data.expenseCount, 'expense')}.
+                From {ticketCount(data.saleCount, 'sale')}, {ticketCount(data.purchaseCount, 'buy')} and{' '}
+                {ticketCount(data.expenseCount, 'expense')}.
               </Text>
+              {data.buyItemsWithoutSupplierPrice > 0 ? (
+                <Text style={[styles.heroCaption, { color: colors.muted }]}>
+                  {ticketCount(data.buyItemsWithoutSupplierPrice, 'bought item')} had no supplier price, so{' '}
+                  {data.buyItemsWithoutSupplierPrice === 1 ? 'it is' : 'they are'} not in profit from buys.
+                </Text>
+              ) : null}
             </>
           ) : isLoading ? (
             <ActivityIndicator color={colors.primary} style={styles.heroLoading} />
@@ -173,6 +185,10 @@ const styles = StyleSheet.create({
   heroFigures: {
     gap: SPACE_XS,
     marginVertical: SPACE_SM,
+  },
+  heroRule: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: SPACE_XS,
   },
   heroLoading: {
     alignSelf: 'flex-start',
