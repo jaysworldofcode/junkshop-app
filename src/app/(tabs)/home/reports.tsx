@@ -8,6 +8,7 @@ import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import type { DateRangePreset } from '@/constants/dateRange';
 import { EXPENSE_CATEGORY_LABELS } from '@/constants/expense';
+import { UNKNOWN_PERSON_NAME } from '@/constants/purchase';
 import {
   FONT_SIZE_BODY,
   FONT_SIZE_CAPTION,
@@ -143,8 +144,8 @@ function ReportBody({ report, today }: { report: ReportData; today: string }) {
         <PeopleList people={report.topBuyers} emptyText="No sales in this period." />
       </SectionCard>
 
-      <SectionCard title="Top sellers" description="People who sold scrap to you.">
-        <PeopleList people={report.topSellers} emptyText="No purchases in this period." />
+      <SectionCard title="Top sellers" description={`People who sold scrap to you. Blank and ${UNKNOWN_PERSON_NAME} sellers are left out.`}>
+        <PeopleList people={report.topSellers} emptyText="No purchases from a named seller in this period." />
       </SectionCard>
 
       <SectionCard title="Expenses by category">

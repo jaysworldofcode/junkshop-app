@@ -117,6 +117,14 @@ test('leaves out blank and Unknown sellers, and joins typed names that differ on
   assert.equal(ranked[0].purchaseTotal, 15_000);
 });
 
+test('leaves out a saved seller whose name is Unknown', () => {
+  const ranked = rankTopSellers(
+    [purchase({ sellerId: 'p1', personName: 'unknown', sellerName: 'Unknown', totalAmount: 50_000 })],
+    10
+  );
+  assert.equal(ranked.length, 0);
+});
+
 test('a saved seller shows their current name after a rename', () => {
   const [seller] = rankTopSellers(
     [purchase({ sellerId: 'p1', personName: 'Pedro Santos', sellerName: 'Pedro', totalAmount: 10_000 })],

@@ -159,13 +159,15 @@ export async function getReport(database: SQLiteDatabase, range: DateRange): Pro
       [UNKNOWN_PERSON_NAME, from, to, REPORT_TOP_PEOPLE_LIMIT]
     ),
     database.getAllAsync<PersonRow>(
-      `SELECT COALESCE(NULLIF(TRIM(seller_name), ''), ?) AS name, COUNT(*) AS ticket_count, SUM(total_amount) AS total
+      `SELECT TRIM(seller_name) AS name, COUNT(*) AS ticket_count, SUM(total_amount) AS total
        FROM purchases
        WHERE purchase_date BETWEEN ? AND ?
+         AND TRIM(COALESCE(seller_name, '')) <> ''
+         AND LOWER(TRIM(seller_name)) <> LOWER(?)
        GROUP BY name
        ORDER BY total DESC
        LIMIT ?`,
-      [UNKNOWN_PERSON_NAME, from, to, REPORT_TOP_PEOPLE_LIMIT]
+      [from, to, UNKNOWN_PERSON_NAME, REPORT_TOP_PEOPLE_LIMIT]
     ),
     database.getAllAsync<CategoryRow>(
       `SELECT category, SUM(amount) AS total

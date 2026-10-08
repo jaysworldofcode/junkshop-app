@@ -162,13 +162,13 @@ export function rankTopSellers(purchases: SellerPurchase[], limit: number): TopS
   const unknownKey = normalizePersonKey(UNKNOWN_PERSON_NAME);
 
   for (const purchase of purchases) {
-    const typedKey = normalizePersonKey(purchase.sellerName ?? '');
-    if (!purchase.sellerId && (typedKey.length === 0 || typedKey === unknownKey)) {
+    const name = (purchase.personName ?? purchase.sellerName ?? '').trim();
+    const nameKey = normalizePersonKey(name);
+    if (nameKey.length === 0 || nameKey === unknownKey) {
       continue;
     }
 
-    const key = purchase.sellerId ? `person:${purchase.sellerId}` : `name:${typedKey}`;
-    const name = purchase.personName ?? purchase.sellerName?.trim() ?? UNKNOWN_PERSON_NAME;
+    const key = purchase.sellerId ? `person:${purchase.sellerId}` : `name:${nameKey}`;
     const current = sellers.get(key) ?? { key, personId: purchase.sellerId, name, purchaseCount: 0, purchaseTotal: 0 };
 
     sellers.set(key, {
