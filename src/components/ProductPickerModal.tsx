@@ -20,6 +20,7 @@ import {
   SPACE_MD,
 } from '@/constants/layout';
 import type { PriceType } from '@/constants/price';
+import { isPakyawMode } from '@/constants/product';
 import type { ProductPrices } from '@/domain/materialPrice';
 import { formatPeso } from '@/domain/money';
 import { normalizeProductKey, type Product, type ProductWithUsage } from '@/domain/product';
@@ -123,13 +124,14 @@ export function ProductPickerModal({
             }
             renderItem={({ item }) => {
               const isSelected = item.id === selectedId;
-              const shownPrice = pricesByMaterial.get(item.id)?.[priceType];
+              const isPakyaw = isPakyawMode(item.pricingMode);
+              const shownPrice = isPakyaw ? null : pricesByMaterial.get(item.id)?.[priceType];
               const details = [usageLabel(item), item.code, item.category].filter(Boolean).join(' · ');
 
               return (
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel={`${item.name}, per ${item.unit}`}
+                  accessibilityLabel={`${item.name}, ${isPakyaw ? 'pakyaw' : `per ${item.unit}`}`}
                   accessibilityState={{ selected: isSelected }}
                   onPress={() => {
                     setSearch('');
@@ -151,10 +153,12 @@ export function ProductPickerModal({
                     ) : null}
                   </View>
                   <View style={styles.priceBox}>
-                    <Text style={[styles.priceLabel, { color: shownPrice ? colors.text : colors.inactive }]}>
-                      {shownPrice ? formatPeso(shownPrice.price) : 'No price'}
+                    <Text style={[styles.priceLabel, { color: shownPrice || isPakyaw ? colors.text : colors.inactive }]}>
+                      {isPakyaw ? 'Pakyaw' : shownPrice ? formatPeso(shownPrice.price) : 'No price'}
                     </Text>
-                    <Text style={[styles.unitLabel, { color: colors.muted }]}>per {item.unit}</Text>
+                    <Text style={[styles.unitLabel, { color: colors.muted }]}>
+                      {isPakyaw ? 'amount only' : `per ${item.unit}`}
+                    </Text>
                   </View>
                 </Pressable>
               );

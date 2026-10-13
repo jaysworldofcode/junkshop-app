@@ -15,6 +15,7 @@ import { PurchaseLineCard } from '@/components/PurchaseLineCard';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { SuccessNotice } from '@/components/SuccessNotice';
+import { TicketConfirmModal } from '@/components/TicketConfirmModal';
 import { SPACE_SM, SPACE_MD, SPACE_LG } from '@/constants/layout';
 import {
   PAYMENT_METHOD_LABELS,
@@ -22,10 +23,12 @@ import {
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUSES,
 } from '@/constants/payment';
+import { isPakyawMode } from '@/constants/product';
 import { NO_PRICES } from '@/domain/materialPrice';
 import { formatPeso, formatPesoInput } from '@/domain/money';
 import type { Product } from '@/domain/product';
-import type { PurchaseLineField } from '@/domain/purchase';
+import { personNameOrUnknown, type PurchaseLineField } from '@/domain/purchase';
+import { buildPreviewLines } from '@/domain/ticketPreview';
 import { useActiveProducts } from '@/products/useActiveProducts';
 import { useReceiptPrinter } from '@/printing/useReceiptPrinter';
 import { usePurchaseForm } from '@/purchases/usePurchaseForm';
@@ -34,9 +37,10 @@ import { useAppTheme } from '@/theme/useAppTheme';
 export default function BuyScrapScreen() {
   const { colors, colorScheme } = useAppTheme();
   const { products, pricesByMaterial, error: productsError } = useActiveProducts();
-  const { state, dispatch, lineFigures, summary, save } = usePurchaseForm();
+  const { state, dispatch, lineFigures, summary, validate, save } = usePurchaseForm();
   const receiptPrinter = useReceiptPrinter('purchase');
   const [pickingLineKey, setPickingLineKey] = useState<string | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const { draft, errors, isSubmitting } = state;
 
@@ -58,8 +62,13 @@ export default function BuyScrapScreen() {
           type: 'selectProduct',
           key: pickingLineKey,
           materialId: product.id,
-          buyPrice: prices.buy ? formatPesoInput(prices.buy.price) : '',
-          supplierPrice: prices.supplier ? formatPesoInput(prices.supplier.price) : '',
+          pricingMode: product.pricingMode,
+          buyPrice: isPakyawMode(product.pricingMode) ? '' : prices.buy ? formatPesoInput(prices.buy.price) : '',
+          supplierPrice: isPakyawMode(product.pricingMode)
+            ? ''
+            : prices.supplier
+              ? formatPesoInput(prices.supplier.price)
+              : '',
         });
       }
       setPickingLineKey(null);
@@ -67,8 +76,35 @@ export default function BuyScrapScreen() {
     [dispatch, pickingLineKey, pricesByMaterial]
   );
 
-  const onSavePress = useCallback(async () => {
+  const previewLines = useMemo(
+    () =>
+      buildPreviewLines(
+        draft.lines.map((line) => {
+          const product = line.materialId ? productsById.get(line.materialId) : undefined;
+          const figures = lineFigures[line.key];
+          return {
+            key: line.key,
+            name: product?.name ?? 'Product',
+            unit: product?.unit ?? '',
+            pricingMode: line.pricingMode,
+            quantity: figures.quantity,
+            unitPrice: figures.unitBuyPrice,
+            total: figures.purchaseTotal,
+          };
+        })
+      ),
+    [draft.lines, lineFigures, productsById]
+  );
+
+  const onSavePress = useCallback(() => {
+    if (validate()) {
+      setIsConfirming(true);
+    }
+  }, [validate]);
+
+  const onConfirm = useCallback(async () => {
     const saved = await save();
+    setIsConfirming(false);
     if (saved) {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
       await receiptPrinter.printAfterSave(saved.id);
@@ -199,13 +235,26 @@ export default function BuyScrapScreen() {
           <PrimaryButton
             label="Save purchase"
             icon={{ ios: 'checkmark', android: 'check', web: 'check' }}
-            onPress={() => {
-              void onSavePress();
-            }}
+            onPress={onSavePress}
             isLoading={isSubmitting}
           />
         </View>
       </KeyboardAvoidingView>
+
+      <TicketConfirmModal
+        visible={isConfirming}
+        title="Check this purchase"
+        partyLabel="Seller"
+        partyName={personNameOrUnknown(draft.sellerName)}
+        lines={previewLines}
+        total={summary.totalAmount}
+        confirmLabel="Accept"
+        isSubmitting={isSubmitting}
+        onConfirm={() => {
+          void onConfirm();
+        }}
+        onCancel={() => setIsConfirming(false)}
+      />
 
       <ProductPickerModal
         visible={pickingLineKey !== null}

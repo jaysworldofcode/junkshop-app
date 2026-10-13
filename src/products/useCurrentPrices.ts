@@ -13,6 +13,7 @@ import {
   type ProductPrices,
 } from '@/domain/materialPrice';
 import { formatPesoInput } from '@/domain/money';
+import { isPakyawMode } from '@/constants/product';
 import type { ProductWithUsage } from '@/domain/product';
 import { nowIso } from '@/domain/timestamps';
 import { getCurrentPrices, writePriceChanges } from '@/products/materialPriceRepository';
@@ -53,9 +54,10 @@ export function useCurrentPrices(): {
 
   const load = useCallback(async () => {
     const [rows, prices] = await Promise.all([listActiveProductsByUsage(database), getCurrentPrices(database)]);
-    setProducts(rows);
+    const priced = rows.filter((row) => !isPakyawMode(row.pricingMode));
+    setProducts(priced);
     setCurrentPrices(prices);
-    setInputs(Object.fromEntries(rows.map((row) => [row.id, inputsFromPrices(prices.get(row.id) ?? NO_PRICES)])));
+    setInputs(Object.fromEntries(priced.map((row) => [row.id, inputsFromPrices(prices.get(row.id) ?? NO_PRICES)])));
     setErrors({});
   }, [database]);
 

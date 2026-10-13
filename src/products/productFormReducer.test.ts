@@ -7,6 +7,7 @@ import { createProductFormState, productFormReducer } from './productFormReducer
 test('starts a new product as active kilograms', () => {
   const state = createProductFormState();
   assert.equal(state.draft.unit, DEFAULT_PRODUCT_UNIT);
+  assert.equal(state.draft.pricingMode, 'per_unit');
   assert.equal(state.draft.isActive, true);
 });
 

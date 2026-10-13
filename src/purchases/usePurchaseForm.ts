@@ -22,6 +22,7 @@ export function usePurchaseForm(): {
   dispatch: (action: PurchaseFormAction) => void;
   lineFigures: Record<string, PurchaseLineFigures>;
   summary: PurchaseSummary;
+  validate: () => boolean;
   save: () => Promise<SavedPurchase | null>;
 } {
   const database = useSQLiteContext();
@@ -36,10 +37,17 @@ export function usePurchaseForm(): {
 
   const summary = useMemo(() => summarizePurchase(Object.values(lineFigures)), [lineFigures]);
 
-  const save = useCallback(async (): Promise<SavedPurchase | null> => {
+  const validate = useCallback((): boolean => {
     const errors = validatePurchaseDraft(state.draft);
     if (hasPurchaseErrors(errors)) {
       dispatch({ type: 'setErrors', errors });
+      return false;
+    }
+    return true;
+  }, [state.draft]);
+
+  const save = useCallback(async (): Promise<SavedPurchase | null> => {
+    if (!validate()) {
       return null;
     }
 
@@ -56,7 +64,7 @@ export function usePurchaseForm(): {
       });
       return null;
     }
-  }, [database, state.draft]);
+  }, [database, state.draft, validate]);
 
-  return { state, dispatch, lineFigures, summary, save };
+  return { state, dispatch, lineFigures, summary, validate, save };
 }

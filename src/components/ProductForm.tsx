@@ -20,7 +20,14 @@ import { SectionCard } from '@/components/SectionCard';
 import { WarningNotice } from '@/components/WarningNotice';
 import { FONT_SIZE_BODY, FONT_SIZE_CAPTION, SPACE_XS, SPACE_SM, SPACE_MD, SPACE_LG } from '@/constants/layout';
 import { PRICE_TYPE_HINTS } from '@/constants/price';
-import { PRODUCT_UNIT_OPTIONS } from '@/constants/product';
+import {
+  isPakyawMode,
+  PAKYAW_UNIT,
+  PRICING_MODE_LABELS,
+  PRICING_MODES,
+  PRODUCT_UNIT_OPTIONS,
+  type PricingMode,
+} from '@/constants/product';
 import { todayLocalDateKey } from '@/domain/localDate';
 import { priceSinceLabel } from '@/domain/materialPrice';
 import type { Product, ProductDraft } from '@/domain/product';
@@ -36,6 +43,7 @@ export function ProductForm({ productId }: ProductFormProps) {
   const { state, currentPrices, isLoading, loadError, change, save } = useProductForm({ productId });
   const today = todayLocalDateKey();
   const perUnit = `/${state.draft.unit.trim() || 'unit'}`;
+  const isPakyaw = isPakyawMode(state.draft.pricingMode);
   const [duplicate, setDuplicate] = useState<Product | null>(null);
   const isEditing = Boolean(productId);
   const isLocked = isLoading || state.isSubmitting;
@@ -110,27 +118,55 @@ export function ProductForm({ productId }: ProductFormProps) {
             />
 
             <View style={styles.unitGroup}>
-              <FormField
-                label="Unit"
-                required
-                hint="How this material is weighed or counted. Pick one or type your own."
-                value={state.draft.unit}
-                onChangeText={(value) => changeField('unit', value)}
-                error={state.fieldErrors.unit}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isLocked}
-              />
+              <Text style={[styles.switchHelp, { color: colors.muted }]}>How you pay for this product.</Text>
               <ChoiceChips
-                label="Common units"
-                options={PRODUCT_UNIT_OPTIONS}
-                value={state.draft.unit}
-                onChange={(value) => changeField('unit', value)}
+                label="Pricing"
+                options={PRICING_MODES}
+                getLabel={(mode) => PRICING_MODE_LABELS[mode]}
+                value={state.draft.pricingMode}
+                onChange={(value: PricingMode) => {
+                  changeField('pricingMode', value);
+                  if (isPakyawMode(value)) {
+                    changeField('unit', PAKYAW_UNIT);
+                    changeField('buyPrice', '');
+                    changeField('sellPrice', '');
+                    changeField('supplierPrice', '');
+                  }
+                }}
                 disabled={isLocked}
               />
             </View>
+
+            {isPakyaw ? (
+              <Text style={[styles.switchHelp, { color: colors.muted }]}>
+                On Buy you type the amount paid. On Sell you type the amount received, and can type what you paid so
+                profit is deducted.
+              </Text>
+            ) : (
+              <View style={styles.unitGroup}>
+                <FormField
+                  label="Unit"
+                  required
+                  hint="How this material is weighed or counted. Pick one or type your own."
+                  value={state.draft.unit}
+                  onChangeText={(value) => changeField('unit', value)}
+                  error={state.fieldErrors.unit}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!isLocked}
+                />
+                <ChoiceChips
+                  label="Common units"
+                  options={PRODUCT_UNIT_OPTIONS}
+                  value={state.draft.unit}
+                  onChange={(value) => changeField('unit', value)}
+                  disabled={isLocked}
+                />
+              </View>
+            )}
           </SectionCard>
 
+          {isPakyaw ? null : (
           <SectionCard
             title="Current prices"
             description="Buy fills in on the Buy screen and Sell on the Sell screen. Prices stay until you change them."
@@ -190,6 +226,7 @@ export function ProductForm({ productId }: ProductFormProps) {
               />
             ) : null}
           </SectionCard>
+          )}
 
           <SectionCard title="Optional details" description="Helps you find the product faster.">
             <FormField
@@ -221,7 +258,7 @@ export function ProductForm({ productId }: ProductFormProps) {
                 </Text>
                 <Text style={[styles.switchHelp, { color: colors.muted }]}>
                   {state.draft.isActive
-                    ? 'Shows on the Buy screen.'
+                    ? 'Shows on the Buy and Sell screens.'
                     : 'Hidden from new purchases. It is not deleted, and old purchases still keep it.'}
                 </Text>
               </View>

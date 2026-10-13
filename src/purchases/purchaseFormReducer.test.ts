@@ -53,6 +53,7 @@ test('picking a product fills in its current prices and clears price errors', ()
     type: 'selectProduct',
     key,
     materialId: 'copper',
+    pricingMode: 'per_unit',
     buyPrice: '420',
     supplierPrice: '470',
   });

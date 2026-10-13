@@ -1,4 +1,5 @@
 import { DEFAULT_PAYMENT_METHOD, DEFAULT_PAYMENT_STATUS } from '@/constants/payment';
+import type { PricingMode } from '@/constants/product';
 import type { LocalDateKey } from '@/domain/localDate';
 import {
   createEmptyPurchaseLine,
@@ -23,7 +24,14 @@ export type PurchaseFormAction =
   | { type: 'changeHeader'; field: PurchaseHeaderField; value: string }
   | { type: 'pickSeller'; personId: string; name: string }
   | { type: 'changeLine'; key: string; field: PurchaseLineField; value: string }
-  | { type: 'selectProduct'; key: string; materialId: string; buyPrice: string; supplierPrice: string }
+  | {
+      type: 'selectProduct';
+      key: string;
+      materialId: string;
+      pricingMode: PricingMode;
+      buyPrice: string;
+      supplierPrice: string;
+    }
   | { type: 'addLine' }
   | { type: 'removeLine'; key: string }
   | { type: 'setErrors'; errors: PurchaseErrors }
@@ -93,7 +101,7 @@ export function purchaseFormReducer(state: PurchaseFormState, action: PurchaseFo
         lastSaved: null,
       };
     case 'selectProduct': {
-      const { key, materialId, buyPrice, supplierPrice } = action;
+      const { key, materialId, pricingMode, buyPrice, supplierPrice } = action;
       const lineErrors = state.errors.lines[key];
 
       return {
@@ -101,7 +109,7 @@ export function purchaseFormReducer(state: PurchaseFormState, action: PurchaseFo
         draft: {
           ...state.draft,
           lines: state.draft.lines.map((line) =>
-            line.key === key ? { ...line, materialId, buyPrice, supplierPrice } : line
+            line.key === key ? { ...line, materialId, pricingMode, buyPrice, supplierPrice } : line
           ),
         },
         errors: lineErrors

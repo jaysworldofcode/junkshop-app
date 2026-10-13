@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { SQLITE_ACTIVE, SQLITE_INACTIVE } from '@/constants/database';
+import { parsePricingMode } from '@/constants/product';
 import {
   isSameActiveProduct,
   optionalText,
@@ -15,6 +16,7 @@ type MaterialRow = {
   code: string | null;
   category: string | null;
   unit: string;
+  pricing_mode: string;
   is_active: number;
   created_at: string;
   updated_at: string;
@@ -26,7 +28,7 @@ export function listProducts(database: SQLiteDatabase, search: string): Promise<
   if (likeSearch.length === 0) {
     return database
       .getAllAsync<MaterialRow>(
-        `SELECT id, name, code, category, unit, is_active, created_at, updated_at
+        `SELECT id, name, code, category, unit, pricing_mode, is_active, created_at, updated_at
          FROM materials
          ORDER BY is_active DESC, name COLLATE NOCASE ASC`
       )
@@ -36,7 +38,7 @@ export function listProducts(database: SQLiteDatabase, search: string): Promise<
   const pattern = `%${likeSearch}%`;
   return database
     .getAllAsync<MaterialRow>(
-      `SELECT id, name, code, category, unit, is_active, created_at, updated_at
+      `SELECT id, name, code, category, unit, pricing_mode, is_active, created_at, updated_at
        FROM materials
        WHERE name LIKE ? COLLATE NOCASE
           OR IFNULL(code, '') LIKE ? COLLATE NOCASE
@@ -51,7 +53,7 @@ export function listProducts(database: SQLiteDatabase, search: string): Promise<
 export function listActiveProductsByUsage(database: SQLiteDatabase): Promise<ProductWithUsage[]> {
   return database
     .getAllAsync<MaterialRow & { purchase_count: number }>(
-      `SELECT m.id, m.name, m.code, m.category, m.unit, m.is_active, m.created_at, m.updated_at,
+      `SELECT m.id, m.name, m.code, m.category, m.unit, m.pricing_mode, m.is_active, m.created_at, m.updated_at,
               COUNT(pi.id) AS purchase_count
        FROM materials m
        LEFT JOIN purchase_items pi ON pi.material_id = m.id
@@ -65,7 +67,7 @@ export function listActiveProductsByUsage(database: SQLiteDatabase): Promise<Pro
 
 export async function getProduct(database: SQLiteDatabase, id: string): Promise<Product | null> {
   const row = await database.getFirstAsync<MaterialRow>(
-    `SELECT id, name, code, category, unit, is_active, created_at, updated_at
+    `SELECT id, name, code, category, unit, pricing_mode, is_active, created_at, updated_at
      FROM materials
      WHERE id = ?`,
     [id]
@@ -80,7 +82,7 @@ export async function findActiveDuplicate(
   excludeId?: string
 ): Promise<Product | null> {
   const rows = await database.getAllAsync<MaterialRow>(
-    `SELECT id, name, code, category, unit, is_active, created_at, updated_at
+    `SELECT id, name, code, category, unit, pricing_mode, is_active, created_at, updated_at
      FROM materials
      WHERE is_active = ?`,
     [SQLITE_ACTIVE]
@@ -95,14 +97,15 @@ export async function findActiveDuplicate(
 
 export async function insertProduct(database: SQLiteDatabase, product: Product): Promise<void> {
   await database.runAsync(
-    `INSERT INTO materials (id, name, code, category, unit, is_active, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO materials (id, name, code, category, unit, pricing_mode, is_active, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       product.id,
       product.name.trim(),
       optionalText(product.code ?? ''),
       optionalText(product.category ?? ''),
       product.unit.trim(),
+      product.pricingMode,
       product.isActive ? SQLITE_ACTIVE : SQLITE_INACTIVE,
       product.createdAt,
       product.updatedAt,
@@ -113,13 +116,14 @@ export async function insertProduct(database: SQLiteDatabase, product: Product):
 export async function updateProduct(database: SQLiteDatabase, product: Product): Promise<void> {
   await database.runAsync(
     `UPDATE materials
-     SET name = ?, code = ?, category = ?, unit = ?, is_active = ?, updated_at = ?
+     SET name = ?, code = ?, category = ?, unit = ?, pricing_mode = ?, is_active = ?, updated_at = ?
      WHERE id = ?`,
     [
       product.name.trim(),
       optionalText(product.code ?? ''),
       optionalText(product.category ?? ''),
       product.unit.trim(),
+      product.pricingMode,
       product.isActive ? SQLITE_ACTIVE : SQLITE_INACTIVE,
       product.updatedAt,
       product.id,
@@ -134,6 +138,7 @@ function mapRow(row: MaterialRow): Product {
     code: row.code,
     category: row.category,
     unit: row.unit,
+    pricingMode: parsePricingMode(row.pricing_mode),
     isActive: row.is_active === SQLITE_ACTIVE,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

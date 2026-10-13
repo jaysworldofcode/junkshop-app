@@ -69,3 +69,14 @@ test('keeps blank optional fields as null', () => {
 test('strips LIKE wildcards from search text', () => {
   assert.equal(toLikeSearch('  cop%per_ '), 'copper');
 });
+
+test('a pakyaw product skips the price list', () => {
+  const draft = {
+    ...createEmptyProductDraft(),
+    name: 'Broken refrigerator',
+    pricingMode: 'pakyaw' as const,
+    buyPrice: 'not-a-price',
+  };
+  assert.equal(hasFieldErrors(validateProductDraft(draft)), false);
+  assert.deepEqual(priceChangesFromDraft(draft, 'fridge', NO_PRICES), []);
+});

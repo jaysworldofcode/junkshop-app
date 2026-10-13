@@ -68,8 +68,8 @@ export default function CurrentPricesScreen() {
             isLoading ? null : (
               <EmptyState
                 icon={{ ios: 'shippingbox.fill', android: 'inventory_2', web: 'inventory_2' }}
-                title="No active products"
-                body="Add a product first, then set its price here."
+                title="No products with a price list"
+                body="Add a product sold by kilo or piece first. Pakyaw products do not use a price list."
               />
             )
           }

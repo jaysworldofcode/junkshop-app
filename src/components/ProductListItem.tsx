@@ -13,6 +13,7 @@ import {
   SPACE_SM,
   SPACE_MD,
 } from '@/constants/layout';
+import { isPakyawMode } from '@/constants/product';
 import type { ProductPrices } from '@/domain/materialPrice';
 import { formatPeso } from '@/domain/money';
 import type { Product } from '@/domain/product';
@@ -38,13 +39,14 @@ export const ProductListItem = memo(function ProductListItem({ product, prices, 
   const { colors } = useAppTheme();
   const details = [product.code, product.category].filter(Boolean).join(' · ');
   const statusLabel = product.isActive ? 'Active' : 'Turned off';
-  const pricesLabel = priceSummary(prices);
-  const isMissingPrice = product.isActive && (prices.buy === null || prices.sell === null);
+  const isPakyaw = isPakyawMode(product.pricingMode);
+  const pricesLabel = isPakyaw ? 'Pakyaw — amount only' : priceSummary(prices);
+  const isMissingPrice = product.isActive && !isPakyaw && (prices.buy === null || prices.sell === null);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${product.name}, per ${product.unit}, ${statusLabel}`}
+      accessibilityLabel={`${product.name}, ${isPakyaw ? 'pakyaw' : `per ${product.unit}`}, ${statusLabel}`}
       accessibilityHint="Opens the product to edit"
       onPress={() => onPress(product)}
       style={({ pressed }) => [
@@ -93,7 +95,7 @@ export const ProductListItem = memo(function ProductListItem({ product, prices, 
       </View>
 
       <View style={[styles.unitPill, { backgroundColor: colors.overlay }]}>
-        <Text style={[styles.unitLabel, { color: colors.text }]}>per {product.unit}</Text>
+        <Text style={[styles.unitLabel, { color: colors.text }]}>{isPakyaw ? 'Pakyaw' : `per ${product.unit}`}</Text>
       </View>
 
       <SymbolView

@@ -18,6 +18,7 @@ import {
   SPACE_SM,
   SPACE_MD,
 } from '@/constants/layout';
+import { isPakyawMode } from '@/constants/product';
 import type { ProductPrices } from '@/domain/materialPrice';
 import { formatPeso } from '@/domain/money';
 import type { Product } from '@/domain/product';
@@ -52,6 +53,7 @@ export const SaleLineCard = memo(function SaleLineCard({
   onPickProduct,
 }: SaleLineCardProps) {
   const { colors } = useAppTheme();
+  const isPakyaw = isPakyawMode(line.pricingMode);
   const unit = product?.unit ?? 'unit';
   const perUnit = `/${unit}`;
 
@@ -101,7 +103,11 @@ export const SaleLineCard = memo(function SaleLineCard({
           <Text style={[styles.productName, { color: product ? colors.text : colors.inactive }]}>
             {product ? product.name : 'Pick a product'}
           </Text>
-          {product ? <Text style={[styles.productUnit, { color: colors.muted }]}>per {product.unit}</Text> : null}
+          {product ? (
+            <Text style={[styles.productUnit, { color: colors.muted }]}>
+              {isPakyaw ? 'Pakyaw' : `per ${product.unit}`}
+            </Text>
+          ) : null}
           <SymbolView
             name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }}
             tintColor={colors.muted}
@@ -113,28 +119,14 @@ export const SaleLineCard = memo(function SaleLineCard({
         ) : null}
       </View>
 
-      <View style={styles.pair}>
-        <View style={styles.pairItem}>
+      {isPakyaw ? (
+        <>
           <FormField
-            label="Quantity sold"
+            label="Amount sold"
             required
-            placeholder="0"
-            suffix={unit}
-            value={line.quantity}
-            onChangeText={(value) => onChange(line.key, 'quantity', value)}
-            error={errors?.quantity}
-            keyboardType="decimal-pad"
-            inputMode="decimal"
-            editable={!disabled}
-          />
-        </View>
-        <View style={styles.pairItem}>
-          <FormField
-            label="Selling price"
-            required
+            hint="What the buyer paid you for this item."
             placeholder="0.00"
             prefix="₱"
-            suffix={perUnit}
             value={line.sellPrice}
             onChangeText={(value) => onChange(line.key, 'sellPrice', value)}
             error={errors?.sellPrice}
@@ -142,18 +134,70 @@ export const SaleLineCard = memo(function SaleLineCard({
             inputMode="decimal"
             editable={!disabled}
           />
-        </View>
-      </View>
+          <FormField
+            label="Buy price"
+            hint="What you paid the seller. Leave blank if you do not know — the sale amount is then all profit."
+            placeholder="Optional"
+            prefix="₱"
+            value={line.buyPrice}
+            onChangeText={(value) => onChange(line.key, 'buyPrice', value)}
+            error={errors?.buyPrice}
+            keyboardType="decimal-pad"
+            inputMode="decimal"
+            editable={!disabled}
+          />
+        </>
+      ) : (
+        <>
+          <View style={styles.pair}>
+            <View style={styles.pairItem}>
+              <FormField
+                label="Quantity sold"
+                required
+                placeholder="0"
+                suffix={unit}
+                value={line.quantity}
+                onChangeText={(value) => onChange(line.key, 'quantity', value)}
+                error={errors?.quantity}
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+                editable={!disabled}
+              />
+            </View>
+            <View style={styles.pairItem}>
+              <FormField
+                label="Selling price"
+                required
+                placeholder="0.00"
+                prefix="₱"
+                suffix={perUnit}
+                value={line.sellPrice}
+                onChangeText={(value) => onChange(line.key, 'sellPrice', value)}
+                error={errors?.sellPrice}
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+                editable={!disabled}
+              />
+            </View>
+          </View>
 
-      {product ? (
-        <PriceComparison priceType="sell" entered={figures.unitSellPrice} reference={prices.sell} unit={unit} />
-      ) : null}
+          {product ? (
+            <PriceComparison priceType="sell" entered={figures.unitSellPrice} reference={prices.sell} unit={unit} />
+          ) : null}
+        </>
+      )}
 
       <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
         <FigureRow label="Sale total" centavos={figures.saleTotal} />
         <FigureRow
           label={
-            figures.unitCost === null ? 'Cost' : `Cost at buy price ${formatPeso(figures.unitCost)}${perUnit}`
+            isPakyaw
+              ? line.buyPrice.trim().length === 0
+                ? 'Cost (no buy price)'
+                : 'Cost at buy price'
+              : figures.unitCost === null
+                ? 'Cost'
+                : `Cost at buy price ${formatPeso(figures.unitCost)}${perUnit}`
           }
           centavos={figures.allocatedPurchaseCost}
         />

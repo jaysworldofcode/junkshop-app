@@ -36,6 +36,21 @@ test('keeps every receipt line within the paper width', () => {
   }
 });
 
+test('prints a pakyaw line as just the name and amount', () => {
+  const text = buildReceiptLines(
+    {
+      ...TICKET,
+      items: [{ name: 'Scrap', quantity: 1_000, unit: 'pc', unitPrice: 100_000, total: 100_000, pricingMode: 'pakyaw' }],
+      total: 100_000,
+    },
+    SHOP,
+    new Date(2026, 9, 6, 18, 36)
+  ).map((line) => line.text);
+
+  assert.ok(text.includes(`Scrap${' '.repeat(RECEIPT_LINE_WIDTH - 'Scrap'.length - 'P1,000.00'.length)}P1,000.00`));
+  assert.ok(!text.some((line) => /pakyaw|\bpc\b|\bkg\b/i.test(line)));
+});
+
 test('prints amounts with the totals on the right', () => {
   const text = buildReceiptLines(TICKET, SHOP, new Date(2026, 9, 6, 18, 36)).map((line) => line.text);
   assert.ok(text.includes(' 12.5 kg x P420.00     P5,250.00'));

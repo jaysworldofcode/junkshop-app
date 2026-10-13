@@ -14,6 +14,7 @@ import { SaleLineCard } from '@/components/SaleLineCard';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { SuccessNotice } from '@/components/SuccessNotice';
+import { TicketConfirmModal } from '@/components/TicketConfirmModal';
 import { SPACE_SM, SPACE_MD, SPACE_LG } from '@/constants/layout';
 import {
   PAYMENT_METHOD_LABELS,
@@ -21,10 +22,13 @@ import {
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUSES,
 } from '@/constants/payment';
+import { isPakyawMode } from '@/constants/product';
 import { NO_PRICES } from '@/domain/materialPrice';
 import { formatPeso, formatPesoInput } from '@/domain/money';
 import type { Product } from '@/domain/product';
+import { personNameOrUnknown } from '@/domain/purchase';
 import type { SaleLineField } from '@/domain/sale';
+import { buildPreviewLines } from '@/domain/ticketPreview';
 import { useActiveProducts } from '@/products/useActiveProducts';
 import { useReceiptPrinter } from '@/printing/useReceiptPrinter';
 import { useSaleForm } from '@/sales/useSaleForm';
@@ -33,9 +37,10 @@ import { useAppTheme } from '@/theme/useAppTheme';
 export default function SellScrapScreen() {
   const { colors, colorScheme } = useAppTheme();
   const { products, pricesByMaterial, error: productsError } = useActiveProducts();
-  const { state, dispatch, lineFigures, summary, save } = useSaleForm(pricesByMaterial);
+  const { state, dispatch, lineFigures, summary, validate, save } = useSaleForm(pricesByMaterial);
   const receiptPrinter = useReceiptPrinter('sale');
   const [pickingLineKey, setPickingLineKey] = useState<string | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const { draft, errors, isSubmitting } = state;
 
@@ -52,11 +57,12 @@ export default function SellScrapScreen() {
   const selectProduct = useCallback(
     (product: Product) => {
       if (pickingLineKey) {
-        const sellPrice = pricesByMaterial.get(product.id)?.sell;
+        const sellPrice = isPakyawMode(product.pricingMode) ? null : pricesByMaterial.get(product.id)?.sell;
         dispatch({
           type: 'selectProduct',
           key: pickingLineKey,
           materialId: product.id,
+          pricingMode: product.pricingMode,
           sellPrice: sellPrice ? formatPesoInput(sellPrice.price) : '',
         });
       }
@@ -65,8 +71,35 @@ export default function SellScrapScreen() {
     [dispatch, pickingLineKey, pricesByMaterial]
   );
 
-  const onSavePress = useCallback(async () => {
+  const previewLines = useMemo(
+    () =>
+      buildPreviewLines(
+        draft.lines.map((line) => {
+          const product = line.materialId ? productsById.get(line.materialId) : undefined;
+          const figures = lineFigures[line.key];
+          return {
+            key: line.key,
+            name: product?.name ?? 'Product',
+            unit: product?.unit ?? '',
+            pricingMode: line.pricingMode,
+            quantity: figures.quantity,
+            unitPrice: figures.unitSellPrice,
+            total: figures.saleTotal,
+          };
+        })
+      ),
+    [draft.lines, lineFigures, productsById]
+  );
+
+  const onSavePress = useCallback(() => {
+    if (validate()) {
+      setIsConfirming(true);
+    }
+  }, [validate]);
+
+  const onConfirm = useCallback(async () => {
     const saved = await save();
+    setIsConfirming(false);
     if (saved) {
       scrollRef.current?.scrollTo({ y: 0, animated: true });
       await receiptPrinter.printAfterSave(saved.id);
@@ -188,13 +221,27 @@ export default function SellScrapScreen() {
           <PrimaryButton
             label="Save sale"
             icon={{ ios: 'checkmark', android: 'check', web: 'check' }}
-            onPress={() => {
-              void onSavePress();
-            }}
+            onPress={onSavePress}
             isLoading={isSubmitting}
           />
         </View>
       </KeyboardAvoidingView>
+
+      <TicketConfirmModal
+        visible={isConfirming}
+        title="Check this sale"
+        partyLabel="Buyer"
+        partyName={personNameOrUnknown(draft.buyerName)}
+        lines={previewLines}
+        total={summary.totalAmount}
+        extras={[{ label: 'Profit', centavos: summary.actualProfit, tone: 'profit' }]}
+        confirmLabel="Accept"
+        isSubmitting={isSubmitting}
+        onConfirm={() => {
+          void onConfirm();
+        }}
+        onCancel={() => setIsConfirming(false)}
+      />
 
       <ProductPickerModal
         visible={pickingLineKey !== null}

@@ -1,4 +1,5 @@
 import { DEFAULT_PAYMENT_METHOD, DEFAULT_PAYMENT_STATUS } from '@/constants/payment';
+import type { PricingMode } from '@/constants/product';
 import type { LocalDateKey } from '@/domain/localDate';
 import { createEmptySaleLine, type SaleDraft, type SaleErrors, type SaleLineField, type SavedSale } from '@/domain/sale';
 
@@ -17,7 +18,7 @@ export type SaleFormAction =
   | { type: 'changeHeader'; field: SaleHeaderField; value: string }
   | { type: 'pickBuyer'; personId: string; name: string }
   | { type: 'changeLine'; key: string; field: SaleLineField; value: string }
-  | { type: 'selectProduct'; key: string; materialId: string; sellPrice: string }
+  | { type: 'selectProduct'; key: string; materialId: string; pricingMode: PricingMode; sellPrice: string }
   | { type: 'addLine' }
   | { type: 'removeLine'; key: string }
   | { type: 'setErrors'; errors: SaleErrors }
@@ -87,15 +88,17 @@ export function saleFormReducer(state: SaleFormState, action: SaleFormAction): S
         lastSaved: null,
       };
     case 'selectProduct': {
-      const { key, materialId, sellPrice } = action;
+      const { key, materialId, pricingMode, sellPrice } = action;
 
       return {
         ...state,
         draft: {
           ...state.draft,
-          lines: state.draft.lines.map((line) => (line.key === key ? { ...line, materialId, sellPrice } : line)),
+          lines: state.draft.lines.map((line) =>
+            line.key === key ? { ...line, materialId, pricingMode, sellPrice, buyPrice: '' } : line
+          ),
         },
-        errors: clearLineErrors(state.errors, key, ['materialId', 'sellPrice']),
+        errors: clearLineErrors(state.errors, key, ['materialId', 'sellPrice', 'buyPrice']),
         submitError: null,
         lastSaved: null,
       };

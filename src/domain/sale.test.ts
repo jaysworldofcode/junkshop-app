@@ -31,6 +31,7 @@ function copperSale(quantity: string): SaleDraft {
   return {
     saleDate: '2026-10-06',
     buyerName: 'Juan',
+    buyerId: null,
     lines: [{ ...createEmptySaleLine('line-1'), materialId: COPPER_ID, quantity, sellPrice: '470' }],
     paymentStatus: 'paid',
     paymentMethod: 'cash',
@@ -81,6 +82,32 @@ test('builds a sale that stores the cost used at the time of the sale', () => {
   assert.equal(items[0].materialId, COPPER_ID);
   assert.equal(items[0].allocatedPurchaseCost, 420_000);
   assert.equal(items[0].actualProfit, 50_000);
+});
+
+test('a pakyaw sale with a buy price deducts that amount from profit', () => {
+  const line = { ...createEmptySaleLine('line-1'), materialId: 'fridge', pricingMode: 'pakyaw' as const, sellPrice: '350', buyPrice: '200' };
+  const figures = computeSaleLineFigures(line, null);
+
+  assert.equal(figures.saleTotal, 35_000);
+  assert.equal(figures.allocatedPurchaseCost, 20_000);
+  assert.equal(figures.actualProfit, 15_000);
+});
+
+test('a pakyaw sale with no buy price treats the whole amount as profit', () => {
+  const line = { ...createEmptySaleLine('line-1'), materialId: 'fridge', pricingMode: 'pakyaw' as const, sellPrice: '350' };
+  const figures = computeSaleLineFigures(line, null);
+
+  assert.equal(figures.allocatedPurchaseCost, 0);
+  assert.equal(figures.actualProfit, 35_000);
+  assert.equal(hasSaleErrors(validateSaleDraft({ ...copperSale('10'), lines: [line] }, new Map())), false);
+});
+
+test('a pakyaw sale does not need a catalog buy price', () => {
+  const draft = {
+    ...copperSale('10'),
+    lines: [{ ...createEmptySaleLine('line-1'), materialId: 'fridge', pricingMode: 'pakyaw' as const, sellPrice: '350' }],
+  };
+  assert.equal(hasSaleErrors(validateSaleDraft(draft, new Map())), false);
 });
 
 test('stores a blank buyer as Unknown and formats the sale number', () => {

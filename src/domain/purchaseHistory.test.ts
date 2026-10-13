@@ -39,6 +39,7 @@ test('sums expected figures and treats a missing supplier price as zero', () => 
     id: '1',
     materialName: 'Copper',
     unit: 'kg',
+    pricingMode: 'per_unit',
     quantity: 35_500,
     unitBuyPrice: 42_000,
     purchaseTotal: 1_491_000,

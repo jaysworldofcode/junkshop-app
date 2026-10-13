@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import { UNSETTLED_PAYMENT_STATUSES, type PaymentMethod, type PaymentStatus } from '@/constants/payment';
+import { parsePricingMode } from '@/constants/product';
 import { UNKNOWN_PERSON_NAME } from '@/constants/purchase';
 import type { DateRange } from '@/domain/dateRange';
 import { breakDownProfit, mergeTransactions, type PeriodTotals, type SaleDetail, type TransactionEntry } from '@/domain/dashboard';
@@ -38,7 +39,8 @@ export async function getPeriodTotals(database: SQLiteDatabase, { from, to }: Da
               SUM(CASE WHEN pi.expected_profit IS NULL THEN 1 ELSE 0 END) AS missing_count
        FROM purchase_items pi
        JOIN purchases p ON p.id = pi.purchase_id
-       WHERE p.purchase_date BETWEEN ? AND ? AND pi.status <> 'cancelled'`,
+       JOIN materials m ON m.id = pi.material_id
+       WHERE p.purchase_date BETWEEN ? AND ? AND pi.status <> 'cancelled' AND m.pricing_mode <> 'pakyaw'`,
       [from, to]
     ),
     database.getFirstAsync<{ expense_count: number; total: number | null }>(
@@ -188,6 +190,7 @@ type SaleItemRow = {
   id: string;
   material_name: string;
   unit: string;
+  pricing_mode: string;
   quantity: number;
   unit_sell_price: number;
   sale_total: number;
@@ -208,7 +211,7 @@ export async function getSaleDetail(database: SQLiteDatabase, id: string): Promi
   }
 
   const items = await database.getAllAsync<SaleItemRow>(
-    `SELECT si.id, m.name AS material_name, m.unit, si.quantity, si.unit_sell_price, si.sale_total,
+    `SELECT si.id, m.name AS material_name, m.unit, m.pricing_mode, si.quantity, si.unit_sell_price, si.sale_total,
             si.allocated_purchase_cost, si.actual_profit
      FROM sale_items si
      JOIN materials m ON m.id = si.material_id
@@ -230,6 +233,7 @@ export async function getSaleDetail(database: SQLiteDatabase, id: string): Promi
       id: item.id,
       materialName: item.material_name,
       unit: item.unit,
+      pricingMode: parsePricingMode(item.pricing_mode),
       quantity: item.quantity,
       unitSellPrice: item.unit_sell_price,
       saleTotal: item.sale_total,

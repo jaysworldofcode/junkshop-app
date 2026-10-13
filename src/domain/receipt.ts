@@ -1,4 +1,5 @@
 import { PAYMENT_METHOD_LABELS, PAYMENT_STATUS_LABELS, type PaymentMethod, type PaymentStatus } from '@/constants/payment';
+import { DEFAULT_PRICING_MODE, isPakyawMode, type PricingMode } from '@/constants/product';
 import { DEFAULT_SHOP_NAME, RECEIPT_FOOTER, RECEIPT_LINE_WIDTH, RECEIPT_RULE_CHARACTER } from '@/constants/printing';
 import type { SaleDetail } from '@/domain/dashboard';
 import { formatDateLabel, type LocalDateKey } from '@/domain/localDate';
@@ -25,7 +26,7 @@ export type ReceiptTicket = {
   date: LocalDateKey;
   partyLabel: string;
   partyName: string;
-  items: { name: string; quantity: number; unit: string; unitPrice: number; total: number }[];
+  items: { name: string; quantity: number; unit: string; unitPrice: number; total: number; pricingMode?: PricingMode }[];
   subtotal: number | null;
   total: number;
   paymentStatus: PaymentStatus;
@@ -46,6 +47,7 @@ export function ticketFromPurchase(purchase: PurchaseDetail): ReceiptTicket {
       unit: item.unit,
       unitPrice: item.unitBuyPrice,
       total: item.purchaseTotal,
+      pricingMode: item.pricingMode,
     })),
     subtotal: purchase.subtotal === purchase.totalAmount ? null : purchase.subtotal,
     total: purchase.totalAmount,
@@ -68,6 +70,7 @@ export function ticketFromSale(sale: SaleDetail): ReceiptTicket {
       unit: item.unit,
       unitPrice: item.unitSellPrice,
       total: item.saleTotal,
+      pricingMode: item.pricingMode,
     })),
     subtotal: null,
     total: sale.totalAmount,
@@ -92,6 +95,10 @@ export function buildReceiptLines(ticket: ReceiptTicket, shop: ShopDetails, prin
   ];
 
   for (const item of ticket.items) {
+    if (isPakyawMode(item.pricingMode ?? DEFAULT_PRICING_MODE)) {
+      lines.push(...columns(item.name, receiptPeso(item.total)).map((line) => ({ ...line, bold: true })));
+      continue;
+    }
     lines.push(...wrap(item.name).map((line) => ({ ...line, bold: true })));
     const rate = `${formatQuantity(item.quantity)} ${item.unit} x ${receiptPeso(item.unitPrice)}`;
     lines.push(...columns(` ${rate}`, receiptPeso(item.total)));

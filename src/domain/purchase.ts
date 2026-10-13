@@ -1,4 +1,5 @@
 import type { PaymentMethod, PaymentStatus } from '@/constants/payment';
+import { DEFAULT_PRICING_MODE, isPakyawMode, type PricingMode } from '@/constants/product';
 import {
   NEW_PURCHASE_ITEM_STATUS,
   NOTES_MAX_LENGTH,
@@ -11,13 +12,14 @@ import {
 } from '@/constants/purchase';
 import type { LocalDateKey } from '@/domain/localDate';
 import { parsePesoInput } from '@/domain/money';
-import { amountForQuantity, parseQuantityInput } from '@/domain/quantity';
+import { amountForQuantity, parseQuantityInput, toThousandths } from '@/domain/quantity';
 import { optionalText } from '@/domain/text';
 import { formatTicketNumber } from '@/domain/ticketNumber';
 
 export type PurchaseLineDraft = {
   key: string;
   materialId: string | null;
+  pricingMode: PricingMode;
   quantity: string;
   buyPrice: string;
   supplierPrice: string;
@@ -109,6 +111,7 @@ export function createEmptyPurchaseLine(key: string): PurchaseLineDraft {
   return {
     key,
     materialId: null,
+    pricingMode: DEFAULT_PRICING_MODE,
     quantity: '',
     buyPrice: '',
     supplierPrice: '',
@@ -117,6 +120,19 @@ export function createEmptyPurchaseLine(key: string): PurchaseLineDraft {
 }
 
 export function computeLineFigures(line: PurchaseLineDraft): PurchaseLineFigures {
+  if (isPakyawMode(line.pricingMode)) {
+    const amount = parsePesoInput(line.buyPrice);
+    const quantity = amount === null ? null : toThousandths(1);
+    return {
+      quantity,
+      unitBuyPrice: amount,
+      purchaseTotal: amount,
+      supplierPrice: null,
+      expectedSellTotal: null,
+      expectedProfit: null,
+    };
+  }
+
   const quantity = parseQuantityInput(line.quantity);
   const unitBuyPrice = parsePesoInput(line.buyPrice);
   const supplierPrice = parsePesoInput(line.supplierPrice);
@@ -178,30 +194,33 @@ export function hasPurchaseErrors(errors: PurchaseErrors): boolean {
 function validatePurchaseLine(line: PurchaseLineDraft): PurchaseLineErrors {
   const lineErrors: PurchaseLineErrors = {};
   const quantity = parseQuantityInput(line.quantity);
+  const isPakyaw = isPakyawMode(line.pricingMode);
 
   if (!line.materialId) {
     lineErrors.materialId = 'Pick a product.';
   }
 
-  if (line.quantity.trim().length === 0) {
-    lineErrors.quantity = 'Enter the quantity.';
-  } else if (quantity === null) {
-    lineErrors.quantity = 'Use a number with up to 3 decimals, like 35.5.';
-  } else if (quantity <= 0) {
-    lineErrors.quantity = 'Quantity must be more than 0.';
+  if (!isPakyaw) {
+    if (line.quantity.trim().length === 0) {
+      lineErrors.quantity = 'Enter the quantity.';
+    } else if (quantity === null) {
+      lineErrors.quantity = 'Use a number with up to 3 decimals, like 35.5.';
+    } else if (quantity <= 0) {
+      lineErrors.quantity = 'Quantity must be more than 0.';
+    }
   }
 
   if (line.buyPrice.trim().length === 0) {
-    lineErrors.buyPrice = 'Enter the buy price.';
+    lineErrors.buyPrice = isPakyaw ? 'Enter the amount paid.' : 'Enter the buy price.';
   } else if (parsePesoInput(line.buyPrice) === null) {
     lineErrors.buyPrice = 'Use a peso amount, like 420 or 420.50.';
   }
 
-  if (line.supplierPrice.trim().length > 0 && parsePesoInput(line.supplierPrice) === null) {
+  if (!isPakyaw && line.supplierPrice.trim().length > 0 && parsePesoInput(line.supplierPrice) === null) {
     lineErrors.supplierPrice = 'Use a peso amount, like 470 or 470.50.';
   }
 
-  if (line.plannedBuyer.trim().length > PERSON_NAME_MAX_LENGTH) {
+  if (!isPakyaw && line.plannedBuyer.trim().length > PERSON_NAME_MAX_LENGTH) {
     lineErrors.plannedBuyer = `Planned buyer must be ${PERSON_NAME_MAX_LENGTH} characters or fewer.`;
   }
 

@@ -18,6 +18,7 @@ import {
   SPACE_SM,
   SPACE_MD,
 } from '@/constants/layout';
+import { isPakyawMode } from '@/constants/product';
 import type { ProductPrices } from '@/domain/materialPrice';
 import type { Product } from '@/domain/product';
 import type {
@@ -56,6 +57,7 @@ export const PurchaseLineCard = memo(function PurchaseLineCard({
   onPickProduct,
 }: PurchaseLineCardProps) {
   const { colors } = useAppTheme();
+  const isPakyaw = isPakyawMode(line.pricingMode);
   const unit = product?.unit ?? 'unit';
   const perUnit = `/${unit}`;
 
@@ -105,7 +107,11 @@ export const PurchaseLineCard = memo(function PurchaseLineCard({
           <Text style={[styles.productName, { color: product ? colors.text : colors.inactive }]}>
             {product ? product.name : 'Pick a product'}
           </Text>
-          {product ? <Text style={[styles.productUnit, { color: colors.muted }]}>per {product.unit}</Text> : null}
+          {product ? (
+            <Text style={[styles.productUnit, { color: colors.muted }]}>
+              {isPakyaw ? 'Pakyaw' : `per ${product.unit}`}
+            </Text>
+          ) : null}
           <SymbolView
             name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }}
             tintColor={colors.muted}
@@ -117,28 +123,14 @@ export const PurchaseLineCard = memo(function PurchaseLineCard({
         ) : null}
       </View>
 
-      <View style={styles.pair}>
-        <View style={styles.pairItem}>
+      {isPakyaw ? (
+        <>
           <FormField
-            label="Quantity"
+            label="Amount paid"
             required
-            placeholder="0"
-            suffix={unit}
-            value={line.quantity}
-            onChangeText={(value) => onChange(line.key, 'quantity', value)}
-            error={errors?.quantity}
-            keyboardType="decimal-pad"
-            inputMode="decimal"
-            editable={!disabled}
-          />
-        </View>
-        <View style={styles.pairItem}>
-          <FormField
-            label="Buy price"
-            required
+            hint="The lump sum you paid the seller, such as ₱200 for a broken refrigerator."
             placeholder="0.00"
             prefix="₱"
-            suffix={perUnit}
             value={line.buyPrice}
             onChangeText={(value) => onChange(line.key, 'buyPrice', value)}
             error={errors?.buyPrice}
@@ -146,52 +138,89 @@ export const PurchaseLineCard = memo(function PurchaseLineCard({
             inputMode="decimal"
             editable={!disabled}
           />
-        </View>
-      </View>
+          <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
+            <FigureRow label="Spent on this item" centavos={figures.purchaseTotal} emphasized />
+          </View>
+        </>
+      ) : (
+        <>
+          <View style={styles.pair}>
+            <View style={styles.pairItem}>
+              <FormField
+                label="Quantity"
+                required
+                placeholder="0"
+                suffix={unit}
+                value={line.quantity}
+                onChangeText={(value) => onChange(line.key, 'quantity', value)}
+                error={errors?.quantity}
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+                editable={!disabled}
+              />
+            </View>
+            <View style={styles.pairItem}>
+              <FormField
+                label="Buy price"
+                required
+                placeholder="0.00"
+                prefix="₱"
+                suffix={perUnit}
+                value={line.buyPrice}
+                onChangeText={(value) => onChange(line.key, 'buyPrice', value)}
+                error={errors?.buyPrice}
+                keyboardType="decimal-pad"
+                inputMode="decimal"
+                editable={!disabled}
+              />
+            </View>
+          </View>
 
-      {product ? (
-        <PriceComparison priceType="buy" entered={figures.unitBuyPrice} reference={prices.buy} unit={unit} />
-      ) : null}
+          {product ? (
+            <PriceComparison priceType="buy" entered={figures.unitBuyPrice} reference={prices.buy} unit={unit} />
+          ) : null}
 
-      <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
-        <FigureRow label="Purchase total" centavos={figures.purchaseTotal} emphasized />
-      </View>
+          <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
+            <FigureRow label="Purchase total" centavos={figures.purchaseTotal} emphasized />
+          </View>
 
-      <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-      <Text style={[styles.subheading, { color: colors.muted }]}>SUPPLIER PLAN</Text>
+          <Text style={[styles.subheading, { color: colors.muted }]}>SUPPLIER PLAN</Text>
 
-      <FormField
-        label="Supplier price"
-        hint={`What the supplier pays per ${unit} when you deliver.`}
-        placeholder="0.00"
-        prefix="₱"
-        suffix={perUnit}
-        value={line.supplierPrice}
-        onChangeText={(value) => onChange(line.key, 'supplierPrice', value)}
-        error={errors?.supplierPrice}
-        keyboardType="decimal-pad"
-        inputMode="decimal"
-        editable={!disabled}
-      />
-      {product ? (
-        <PriceComparison priceType="supplier" entered={figures.supplierPrice} reference={prices.supplier} unit={unit} />
-      ) : null}
+          <FormField
+            label="Supplier price"
+            hint={`What the supplier pays per ${unit} when you deliver.`}
+            placeholder="0.00"
+            prefix="₱"
+            suffix={perUnit}
+            value={line.supplierPrice}
+            onChangeText={(value) => onChange(line.key, 'supplierPrice', value)}
+            error={errors?.supplierPrice}
+            keyboardType="decimal-pad"
+            inputMode="decimal"
+            editable={!disabled}
+          />
+          {product ? (
+            <PriceComparison priceType="supplier" entered={figures.supplierPrice} reference={prices.supplier} unit={unit} />
+          ) : null}
 
-      <FormField
-        label="Planned buyer"
-        placeholder="e.g. ABC Recycling (optional)"
-        value={line.plannedBuyer}
-        onChangeText={(value) => onChange(line.key, 'plannedBuyer', value)}
-        error={errors?.plannedBuyer}
-        autoCapitalize="words"
-        editable={!disabled}
-      />
+          <FormField
+            label="Planned buyer"
+            placeholder="e.g. ABC Recycling (optional)"
+            value={line.plannedBuyer}
+            onChangeText={(value) => onChange(line.key, 'plannedBuyer', value)}
+            error={errors?.plannedBuyer}
+            autoCapitalize="words"
+            editable={!disabled}
+          />
 
-      <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
-        <FigureRow label="Expected from supplier" centavos={figures.expectedSellTotal} />
-        <FigureRow label="Expected profit" centavos={figures.expectedProfit} tone="profit" emphasized />
-      </View>
+          <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
+            <FigureRow label="Expected from supplier" centavos={figures.expectedSellTotal} />
+            <FigureRow label="Expected profit" centavos={figures.expectedProfit} tone="profit" emphasized />
+          </View>
+        </>
+      )}
     </View>
   );
 });

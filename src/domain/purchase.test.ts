@@ -19,6 +19,7 @@ function copperTicket(): PurchaseDraft {
   return {
     purchaseDate: '2026-10-06',
     sellerName: 'Pedro',
+    sellerId: null,
     lines: [
       {
         ...createEmptyPurchaseLine('line-1'),
@@ -133,4 +134,34 @@ test('rejects zero quantity and too many decimals', () => {
 
 test('accepts the copper ticket as valid', () => {
   assert.equal(hasPurchaseErrors(validatePurchaseDraft(copperTicket())), false);
+});
+
+test('a pakyaw buy stores the typed amount as the line total', () => {
+  const line = {
+    ...createEmptyPurchaseLine('line-1'),
+    materialId: 'material-fridge',
+    pricingMode: 'pakyaw' as const,
+    buyPrice: '200',
+  };
+  const figures = computeLineFigures(line);
+
+  assert.equal(figures.quantity, 1_000);
+  assert.equal(figures.purchaseTotal, 20_000);
+  assert.equal(figures.expectedProfit, null);
+
+  const errors = validatePurchaseDraft({
+    ...copperTicket(),
+    lines: [line],
+  });
+  assert.equal(hasPurchaseErrors(errors), false);
+});
+
+test('a pakyaw buy needs the amount paid, not a quantity', () => {
+  const draft = {
+    ...copperTicket(),
+    lines: [{ ...createEmptyPurchaseLine('line-1'), materialId: 'material-fridge', pricingMode: 'pakyaw' as const }],
+  };
+  const errors = validatePurchaseDraft(draft);
+  assert.equal(errors.lines['line-1'].quantity, undefined);
+  assert.equal(errors.lines['line-1'].buyPrice, 'Enter the amount paid.');
 });

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useState } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import { runInTransaction } from '@/db/runInTransaction';
+import { isPakyawMode, PAKYAW_UNIT } from '@/constants/product';
 import { createId } from '@/domain/ids';
 import { todayLocalDateKey } from '@/domain/localDate';
 import { NO_PRICES, type ProductPrices } from '@/domain/materialPrice';
@@ -137,6 +138,7 @@ export function useProductForm({ productId }: UseProductFormOptions = {}): {
         const timestamp = nowIso();
         const today = todayLocalDateKey();
         const materialId = existing?.id ?? createId();
+        const unit = isPakyawMode(state.draft.pricingMode) ? PAKYAW_UNIT : state.draft.unit.trim();
         const priceChanges = priceChangesFromDraft(state.draft, materialId, currentPrices);
 
         await runInTransaction(database, async (transaction) => {
@@ -146,7 +148,8 @@ export function useProductForm({ productId }: UseProductFormOptions = {}): {
               name: state.draft.name.trim(),
               code: optionalText(state.draft.code),
               category: optionalText(state.draft.category),
-              unit: state.draft.unit.trim(),
+              unit,
+              pricingMode: state.draft.pricingMode,
               isActive: state.draft.isActive,
               updatedAt: timestamp,
             });
@@ -156,7 +159,8 @@ export function useProductForm({ productId }: UseProductFormOptions = {}): {
               name: state.draft.name.trim(),
               code: optionalText(state.draft.code),
               category: optionalText(state.draft.category),
-              unit: state.draft.unit.trim(),
+              unit,
+              pricingMode: state.draft.pricingMode,
               isActive: state.draft.isActive,
               createdAt: timestamp,
               updatedAt: timestamp,

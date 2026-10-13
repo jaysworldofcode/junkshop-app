@@ -32,8 +32,8 @@ test('lists sales and purchases together, newest first', () => {
 
 test('sums the cost and profit of a sale', () => {
   const totals = sumSaleItems([
-    { id: '1', materialName: 'Copper', unit: 'kg', quantity: 10_000, unitSellPrice: 47_000, saleTotal: 470_000, allocatedPurchaseCost: 420_000, actualProfit: 50_000 },
-    { id: '2', materialName: 'Aluminum', unit: 'kg', quantity: 5_000, unitSellPrice: 7_000, saleTotal: 35_000, allocatedPurchaseCost: 30_000, actualProfit: 5_000 },
+    { id: '1', materialName: 'Copper', unit: 'kg', pricingMode: 'per_unit', quantity: 10_000, unitSellPrice: 47_000, saleTotal: 470_000, allocatedPurchaseCost: 420_000, actualProfit: 50_000 },
+    { id: '2', materialName: 'Aluminum', unit: 'kg', pricingMode: 'per_unit', quantity: 5_000, unitSellPrice: 7_000, saleTotal: 35_000, allocatedPurchaseCost: 30_000, actualProfit: 5_000 },
   ]);
 
   assert.deepEqual(totals, { cost: 450_000, profit: 55_000 });

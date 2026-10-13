@@ -15,7 +15,13 @@ test('picking a product fills its current sell price and clears those errors', (
     },
   });
 
-  state = saleFormReducer(state, { type: 'selectProduct', key, materialId: 'material-copper', sellPrice: '470' });
+  state = saleFormReducer(state, {
+    type: 'selectProduct',
+    key,
+    materialId: 'material-copper',
+    pricingMode: 'per_unit',
+    sellPrice: '470',
+  });
 
   assert.equal(state.draft.lines[0].materialId, 'material-copper');
   assert.equal(state.draft.lines[0].sellPrice, '470');

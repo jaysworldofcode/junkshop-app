@@ -1,9 +1,13 @@
 import {
+  DEFAULT_PRICING_MODE,
   DEFAULT_PRODUCT_UNIT,
+  isPakyawMode,
+  PAKYAW_UNIT,
   PRODUCT_CATEGORY_MAX_LENGTH,
   PRODUCT_CODE_MAX_LENGTH,
   PRODUCT_NAME_MAX_LENGTH,
   PRODUCT_UNIT_MAX_LENGTH,
+  type PricingMode,
 } from '@/constants/product';
 import { PRICE_TYPES, type PriceType } from '@/constants/price';
 import { isPriceChanged, type PriceChange, type ProductPrices } from '@/domain/materialPrice';
@@ -15,6 +19,7 @@ export type Product = {
   code: string | null;
   category: string | null;
   unit: string;
+  pricingMode: PricingMode;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
@@ -29,6 +34,7 @@ export type ProductDraft = {
   code: string;
   category: string;
   unit: string;
+  pricingMode: PricingMode;
   isActive: boolean;
   buyPrice: string;
   sellPrice: string;
@@ -56,6 +62,7 @@ export function createEmptyProductDraft(): ProductDraft {
     code: '',
     category: '',
     unit: DEFAULT_PRODUCT_UNIT,
+    pricingMode: DEFAULT_PRICING_MODE,
     isActive: true,
     buyPrice: '',
     sellPrice: '',
@@ -69,6 +76,7 @@ export function draftFromProduct(product: Product, prices: ProductPrices): Produ
     code: product.code ?? '',
     category: product.category ?? '',
     unit: product.unit,
+    pricingMode: product.pricingMode,
     isActive: product.isActive,
     buyPrice: prices.buy ? formatPesoInput(prices.buy.price) : '',
     sellPrice: prices.sell ? formatPesoInput(prices.sell.price) : '',
@@ -82,6 +90,10 @@ export function priceChangesFromDraft(
   materialId: string,
   current: ProductPrices
 ): PriceChange[] {
+  if (isPakyawMode(draft.pricingMode)) {
+    return [];
+  }
+
   return PRICE_TYPES.flatMap((priceType) => {
     const price = parsePesoInput(draft[PRICE_DRAFT_FIELDS[priceType]]);
     return price !== null && isPriceChanged(current[priceType], price)
@@ -113,7 +125,7 @@ export function isSameActiveProduct(
 export function validateProductDraft(draft: ProductDraft): ProductFieldErrors {
   const fieldErrors: ProductFieldErrors = {};
   const name = draft.name.trim();
-  const unit = draft.unit.trim();
+  const unit = isPakyawMode(draft.pricingMode) ? PAKYAW_UNIT : draft.unit.trim();
 
   if (name.length === 0) {
     fieldErrors.name = 'Name is required.';
@@ -135,9 +147,11 @@ export function validateProductDraft(draft: ProductDraft): ProductFieldErrors {
     fieldErrors.category = `Category must be ${PRODUCT_CATEGORY_MAX_LENGTH} characters or fewer.`;
   }
 
-  for (const field of Object.values(PRICE_DRAFT_FIELDS)) {
-    if (draft[field].trim().length > 0 && parsePesoInput(draft[field]) === null) {
-      fieldErrors[field] = 'Use a peso amount, like 420 or 420.50.';
+  if (!isPakyawMode(draft.pricingMode)) {
+    for (const field of Object.values(PRICE_DRAFT_FIELDS)) {
+      if (draft[field].trim().length > 0 && parsePesoInput(draft[field]) === null) {
+        fieldErrors[field] = 'Use a peso amount, like 420 or 420.50.';
+      }
     }
   }
 

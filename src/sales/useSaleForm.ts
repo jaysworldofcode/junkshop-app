@@ -24,6 +24,7 @@ export function useSaleForm(pricesByMaterial: Map<string, ProductPrices>): {
   dispatch: (action: SaleFormAction) => void;
   lineFigures: Record<string, SaleLineFigures>;
   summary: SaleSummary;
+  validate: () => boolean;
   save: () => Promise<SavedSale | null>;
 } {
   const database = useSQLiteContext();
@@ -42,10 +43,17 @@ export function useSaleForm(pricesByMaterial: Map<string, ProductPrices>): {
 
   const summary = useMemo(() => summarizeSale(Object.values(lineFigures)), [lineFigures]);
 
-  const save = useCallback(async (): Promise<SavedSale | null> => {
+  const validate = useCallback((): boolean => {
     const errors = validateSaleDraft(state.draft, pricesByMaterial);
     if (hasSaleErrors(errors)) {
       dispatch({ type: 'setErrors', errors });
+      return false;
+    }
+    return true;
+  }, [pricesByMaterial, state.draft]);
+
+  const save = useCallback(async (): Promise<SavedSale | null> => {
+    if (!validate()) {
       return null;
     }
 
@@ -65,7 +73,7 @@ export function useSaleForm(pricesByMaterial: Map<string, ProductPrices>): {
       });
       return null;
     }
-  }, [database, pricesByMaterial, state.draft]);
+  }, [database, pricesByMaterial, state.draft, validate]);
 
-  return { state, dispatch, lineFigures, summary, save };
+  return { state, dispatch, lineFigures, summary, validate, save };
 }

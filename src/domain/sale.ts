@@ -1,22 +1,26 @@
 import type { PaymentMethod, PaymentStatus } from '@/constants/payment';
+import { DEFAULT_PRICING_MODE, isPakyawMode, type PricingMode } from '@/constants/product';
 import { NOTES_MAX_LENGTH, PERSON_NAME_MAX_LENGTH } from '@/constants/purchase';
 import { SALE_NUMBER_PREFIX, SALE_OTHER_COST_CENTAVOS, SALE_SEQUENCE_DIGITS } from '@/constants/sale';
 import type { LocalDateKey } from '@/domain/localDate';
 import { NO_PRICES, type ProductPrices } from '@/domain/materialPrice';
 import { parsePesoInput } from '@/domain/money';
 import { personNameOrUnknown } from '@/domain/purchase';
-import { amountForQuantity, parseQuantityInput } from '@/domain/quantity';
+import { amountForQuantity, parseQuantityInput, toThousandths } from '@/domain/quantity';
 import { optionalText } from '@/domain/text';
 import { formatTicketNumber } from '@/domain/ticketNumber';
 
 export type SaleLineDraft = {
   key: string;
   materialId: string | null;
+  pricingMode: PricingMode;
   quantity: string;
   sellPrice: string;
+  /** What was paid for a pakyaw item. Blank means the sale amount is all profit. */
+  buyPrice: string;
 };
 
-export type SaleLineField = 'quantity' | 'sellPrice';
+export type SaleLineField = 'quantity' | 'sellPrice' | 'buyPrice';
 
 export type SaleDraft = {
   saleDate: LocalDateKey;
@@ -95,7 +99,7 @@ export type SavedSale = {
 };
 
 export function createEmptySaleLine(key: string): SaleLineDraft {
-  return { key, materialId: null, quantity: '', sellPrice: '' };
+  return { key, materialId: null, pricingMode: DEFAULT_PRICING_MODE, quantity: '', sellPrice: '', buyPrice: '' };
 }
 
 /** The cost basis of a sale line is the product's current buy price. */
@@ -108,6 +112,21 @@ export function unitCostFor(materialId: string | null, pricesByMaterial: Map<str
 }
 
 export function computeSaleLineFigures(line: SaleLineDraft, unitCost: number | null): SaleLineFigures {
+  if (isPakyawMode(line.pricingMode)) {
+    const saleTotal = parsePesoInput(line.sellPrice);
+    const typedCost = line.buyPrice.trim().length === 0 ? 0 : parsePesoInput(line.buyPrice);
+    const quantity = saleTotal === null ? null : toThousandths(1);
+    const actualProfit = saleTotal !== null && typedCost !== null ? saleTotal - typedCost : null;
+    return {
+      quantity,
+      unitSellPrice: saleTotal,
+      unitCost: typedCost,
+      saleTotal,
+      allocatedPurchaseCost: typedCost,
+      actualProfit,
+    };
+  }
+
   const quantity = parseQuantityInput(line.quantity);
   const unitSellPrice = parsePesoInput(line.sellPrice);
 
@@ -147,25 +166,32 @@ export function validateSaleDraft(draft: SaleDraft, pricesByMaterial: Map<string
   for (const line of draft.lines) {
     const lineErrors: SaleLineErrors = {};
     const quantity = parseQuantityInput(line.quantity);
+    const isPakyaw = isPakyawMode(line.pricingMode);
 
     if (!line.materialId) {
       lineErrors.materialId = 'Pick a product.';
-    } else if (unitCostFor(line.materialId, pricesByMaterial) === null) {
+    } else if (!isPakyaw && unitCostFor(line.materialId, pricesByMaterial) === null) {
       lineErrors.materialId = 'This product has no buy price yet, so profit cannot be worked out. Set it on Products → Prices.';
     }
 
-    if (line.quantity.trim().length === 0) {
-      lineErrors.quantity = 'Enter the quantity sold.';
-    } else if (quantity === null) {
-      lineErrors.quantity = 'Use a number with up to 3 decimals, like 10.5.';
-    } else if (quantity <= 0) {
-      lineErrors.quantity = 'Quantity must be more than 0.';
+    if (!isPakyaw) {
+      if (line.quantity.trim().length === 0) {
+        lineErrors.quantity = 'Enter the quantity sold.';
+      } else if (quantity === null) {
+        lineErrors.quantity = 'Use a number with up to 3 decimals, like 10.5.';
+      } else if (quantity <= 0) {
+        lineErrors.quantity = 'Quantity must be more than 0.';
+      }
     }
 
     if (line.sellPrice.trim().length === 0) {
-      lineErrors.sellPrice = 'Enter the selling price.';
+      lineErrors.sellPrice = isPakyaw ? 'Enter the amount sold.' : 'Enter the selling price.';
     } else if (parsePesoInput(line.sellPrice) === null) {
       lineErrors.sellPrice = 'Use a peso amount, like 470 or 470.50.';
+    }
+
+    if (isPakyaw && line.buyPrice.trim().length > 0 && parsePesoInput(line.buyPrice) === null) {
+      lineErrors.buyPrice = 'Use a peso amount, like 200 or 200.50.';
     }
 
     if (Object.keys(lineErrors).length > 0) {

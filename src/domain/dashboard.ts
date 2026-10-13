@@ -1,4 +1,5 @@
 import type { PaymentMethod, PaymentStatus } from '@/constants/payment';
+import type { PricingMode } from '@/constants/product';
 import type { TransactionKind } from '@/constants/transaction';
 import type { LocalDateKey } from '@/domain/localDate';
 
@@ -51,6 +52,7 @@ export type SaleDetailItem = {
   id: string;
   materialName: string;
   unit: string;
+  pricingMode: PricingMode;
   quantity: number;
   unitSellPrice: number;
   saleTotal: number;

@@ -19,6 +19,7 @@ import {
   SPACE_LG,
 } from '@/constants/layout';
 import { PAYMENT_METHOD_LABELS } from '@/constants/payment';
+import { isPakyawMode } from '@/constants/product';
 import { useSaleDetail } from '@/dashboard/useDashboard';
 import { sumSaleItems, type SaleDetail } from '@/domain/dashboard';
 import { formatDateLabel } from '@/domain/localDate';
@@ -104,10 +105,19 @@ function SaleDetailView({ sale }: { sale: SaleDetail }) {
             <View key={item.id} style={[styles.itemCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
               <Text style={[styles.itemName, { color: colors.text }]}>{item.materialName}</Text>
               <Text style={[styles.itemQuantity, { color: colors.muted }]}>
-                {formatQuantity(item.quantity)} {item.unit} × {formatPeso(item.unitSellPrice)}/{item.unit}
+                {isPakyawMode(item.pricingMode)
+                  ? `Pakyaw ${formatPeso(item.saleTotal)}`
+                  : `${formatQuantity(item.quantity)} ${item.unit} × ${formatPeso(item.unitSellPrice)}/${item.unit}`}
               </Text>
               <FigureRow label="Sale total" centavos={item.saleTotal} />
-              <FigureRow label="Cost at buy price" centavos={item.allocatedPurchaseCost} />
+              <FigureRow
+                label={
+                  isPakyawMode(item.pricingMode) && item.allocatedPurchaseCost === 0
+                    ? 'Cost (no buy price)'
+                    : 'Cost at buy price'
+                }
+                centavos={item.allocatedPurchaseCost}
+              />
               <FigureRow label="Actual profit" centavos={item.actualProfit} tone="profit" emphasized />
             </View>
           ))}

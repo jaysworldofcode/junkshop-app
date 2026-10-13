@@ -1,6 +1,7 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
 import type { PaymentMethod, PaymentStatus } from '@/constants/payment';
+import { parsePricingMode } from '@/constants/product';
 import {
   UNKNOWN_PERSON_NAME,
   UNSOLD_PURCHASE_ITEM_STATUSES,
@@ -146,6 +147,7 @@ type PurchaseItemRow = {
   id: string;
   material_name: string;
   unit: string;
+  pricing_mode: string;
   quantity: number;
   unit_buy_price: number;
   purchase_total: number;
@@ -170,7 +172,7 @@ export async function getPurchaseDetail(database: SQLiteDatabase, id: string): P
   }
 
   const items = await database.getAllAsync<PurchaseItemRow>(
-    `SELECT pi.id, m.name AS material_name, m.unit, pi.quantity, pi.unit_buy_price, pi.purchase_total,
+    `SELECT pi.id, m.name AS material_name, m.unit, m.pricing_mode, pi.quantity, pi.unit_buy_price, pi.purchase_total,
             pi.supplier_price, pi.expected_sell_total, pi.expected_profit, pi.supplier_name, pi.status
      FROM purchase_items pi
      JOIN materials m ON m.id = pi.material_id
@@ -194,6 +196,7 @@ export async function getPurchaseDetail(database: SQLiteDatabase, id: string): P
       id: item.id,
       materialName: item.material_name,
       unit: item.unit,
+      pricingMode: parsePricingMode(item.pricing_mode),
       quantity: item.quantity,
       unitBuyPrice: item.unit_buy_price,
       purchaseTotal: item.purchase_total,

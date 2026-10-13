@@ -4,6 +4,7 @@ import { DetailRow } from '@/components/DetailRow';
 import { FigureRow } from '@/components/FigureRow';
 import { StatusBadge } from '@/components/StatusBadge';
 import { FONT_SIZE_BODY, FONT_SIZE_CAPTION, RADIUS_LG, RADIUS_MD, SPACE_XS, SPACE_SM, SPACE_MD } from '@/constants/layout';
+import { isPakyawMode } from '@/constants/product';
 import { formatPeso } from '@/domain/money';
 import type { PurchaseDetailItem } from '@/domain/purchaseHistory';
 import { formatQuantity } from '@/domain/quantity';
@@ -17,6 +18,7 @@ type PurchaseItemCardProps = {
 export function PurchaseItemCard({ item }: PurchaseItemCardProps) {
   const { colors } = useAppTheme();
   const status = itemStatusBadge(item.status);
+  const isPakyaw = isPakyawMode(item.pricingMode);
 
   return (
     <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
@@ -24,7 +26,9 @@ export function PurchaseItemCard({ item }: PurchaseItemCardProps) {
         <View style={styles.titleBox}>
           <Text style={[styles.name, { color: colors.text }]}>{item.materialName}</Text>
           <Text style={[styles.quantity, { color: colors.muted }]}>
-            {formatQuantity(item.quantity)} {item.unit} × {formatPeso(item.unitBuyPrice)}/{item.unit}
+            {isPakyaw
+              ? `Pakyaw ${formatPeso(item.purchaseTotal)}`
+              : `${formatQuantity(item.quantity)} ${item.unit} × ${formatPeso(item.unitBuyPrice)}/${item.unit}`}
           </Text>
         </View>
         <StatusBadge label={status.label} tone={status.tone} />
@@ -34,19 +38,23 @@ export function PurchaseItemCard({ item }: PurchaseItemCardProps) {
         <FigureRow label="Purchase total" centavos={item.purchaseTotal} emphasized />
       </View>
 
-      <View style={styles.resale}>
-        <Text style={[styles.subheading, { color: colors.muted }]}>SUPPLIER PLAN</Text>
-        <DetailRow
-          label="Supplier price"
-          value={item.supplierPrice === null ? 'Not set' : `${formatPeso(item.supplierPrice)}/${item.unit}`}
-        />
-        <DetailRow label="Planned buyer" value={item.plannedBuyer ?? 'Not set'} />
-      </View>
+      {isPakyaw ? null : (
+        <>
+          <View style={styles.resale}>
+            <Text style={[styles.subheading, { color: colors.muted }]}>SUPPLIER PLAN</Text>
+            <DetailRow
+              label="Supplier price"
+              value={item.supplierPrice === null ? 'Not set' : `${formatPeso(item.supplierPrice)}/${item.unit}`}
+            />
+            <DetailRow label="Planned buyer" value={item.plannedBuyer ?? 'Not set'} />
+          </View>
 
-      <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
-        <FigureRow label="Expected from supplier" centavos={item.expectedSellTotal} />
-        <FigureRow label="Expected profit" centavos={item.expectedProfit} tone="profit" emphasized />
-      </View>
+          <View style={[styles.figureBox, { backgroundColor: colors.background }]}>
+            <FigureRow label="Expected from supplier" centavos={item.expectedSellTotal} />
+            <FigureRow label="Expected profit" centavos={item.expectedProfit} tone="profit" emphasized />
+          </View>
+        </>
+      )}
     </View>
   );
 }
