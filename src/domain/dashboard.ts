@@ -1,6 +1,6 @@
 import type { PaymentMethod, PaymentStatus } from '@/constants/payment';
 import type { PricingMode } from '@/constants/product';
-import type { TransactionKind } from '@/constants/transaction';
+import type { TicketStatus, TransactionFilter, TransactionKind } from '@/constants/transaction';
 import type { LocalDateKey } from '@/domain/localDate';
 
 export type PeriodTotals = {
@@ -45,6 +45,7 @@ export type TransactionEntry = {
   /** Actual profit for a sale. Purchases have no realized profit. */
   profit: number | null;
   paymentStatus: PaymentStatus;
+  status: TicketStatus;
   materialNames: string[];
 };
 
@@ -63,7 +64,9 @@ export type SaleDetailItem = {
 export type SaleDetail = {
   id: string;
   saleNumber: string;
+  buyerId: string | null;
   buyerName: string;
+  status: TicketStatus;
   saleDate: LocalDateKey;
   totalAmount: number;
   paymentStatus: PaymentStatus;
@@ -77,6 +80,17 @@ export function mergeTransactions(...groups: TransactionEntry[][]): TransactionE
   return groups
     .flat()
     .sort((a, b) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date)));
+}
+
+/** Cancelled tickets stay out of Sales, Purchases, and All. The Cancelled chip is the only way to see them. */
+export function matchesTransactionFilter(transaction: TransactionEntry, filter: TransactionFilter): boolean {
+  if (filter === 'cancelled') {
+    return transaction.status === 'cancelled';
+  }
+  if (transaction.status === 'cancelled') {
+    return false;
+  }
+  return filter === 'all' || transaction.kind === filter;
 }
 
 export function sumSaleItems(items: SaleDetailItem[]): { cost: number; profit: number } {

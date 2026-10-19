@@ -16,7 +16,7 @@ import {
   type TransactionFilter,
 } from '@/constants/transaction';
 import { useTransactions } from '@/dashboard/useDashboard';
-import type { TransactionEntry } from '@/domain/dashboard';
+import { matchesTransactionFilter, type TransactionEntry } from '@/domain/dashboard';
 import { formatRangeLabel } from '@/domain/dateRange';
 import { isLocalDateKey, todayLocalDateKey } from '@/domain/localDate';
 import { useAppTheme } from '@/theme/useAppTheme';
@@ -42,7 +42,7 @@ function TransactionsList({ from, to }: { from: string; to: string }) {
   const { data, isLoading, error } = useTransactions({ from, to });
 
   const shown = useMemo(
-    () => (data ?? []).filter((transaction) => filter === 'all' || transaction.kind === filter),
+    () => (data ?? []).filter((transaction) => matchesTransactionFilter(transaction, filter)),
     [data, filter]
   );
 
@@ -103,7 +103,11 @@ function TransactionsList({ from, to }: { from: string; to: string }) {
           ) : (
             <EmptyState
               icon={{ ios: 'tray', android: 'inbox', web: 'inbox' }}
-              title={`No ${TRANSACTION_FILTER_LABELS[filter].toLowerCase()} in this period`}
+              title={
+                filter === 'cancelled'
+                  ? 'No cancelled tickets in this period'
+                  : `No ${TRANSACTION_FILTER_LABELS[filter].toLowerCase()} in this period`
+              }
               body="Try another filter, or go back and pick a different period."
             />
           )

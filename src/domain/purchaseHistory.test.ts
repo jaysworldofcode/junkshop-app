@@ -3,7 +3,12 @@ import { test } from 'node:test';
 
 import { groupPurchasesByDay, sumExpected, type PurchaseDetailItem, type PurchaseListEntry } from './purchaseHistory';
 
-function entry(id: string, purchaseDate: string, totalAmount: number): PurchaseListEntry {
+function entry(
+  id: string,
+  purchaseDate: string,
+  totalAmount: number,
+  status: PurchaseListEntry['status'] = 'active'
+): PurchaseListEntry {
   return {
     id,
     purchaseNumber: id,
@@ -11,6 +16,7 @@ function entry(id: string, purchaseDate: string, totalAmount: number): PurchaseL
     purchaseDate,
     totalAmount,
     paymentStatus: 'paid',
+    status,
     lineCount: 1,
     unsoldLineCount: 1,
     materialNames: ['Copper'],
@@ -32,6 +38,17 @@ test('groups newest-first purchases into one section per day with a day total', 
     ['b', 'a']
   );
   assert.equal(sections[1].dayTotal, 60_000);
+});
+
+test('a cancelled purchase still appears in the day, but not in the day total', () => {
+  const sections = groupPurchasesByDay([
+    entry('a', '2026-10-06', 100_000),
+    entry('b', '2026-10-06', 50_000, 'cancelled'),
+  ]);
+
+  assert.equal(sections.length, 1);
+  assert.equal(sections[0].data.length, 2);
+  assert.equal(sections[0].dayTotal, 100_000);
 });
 
 test('sums expected figures and treats a missing supplier price as zero', () => {

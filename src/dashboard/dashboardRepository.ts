@@ -3,6 +3,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { UNSETTLED_PAYMENT_STATUSES, type PaymentMethod, type PaymentStatus } from '@/constants/payment';
 import { parsePricingMode } from '@/constants/product';
 import { UNKNOWN_PERSON_NAME } from '@/constants/purchase';
+import { parseTicketStatus } from '@/constants/transaction';
 import type { DateRange } from '@/domain/dateRange';
 import { breakDownProfit, mergeTransactions, type PeriodTotals, type SaleDetail, type TransactionEntry } from '@/domain/dashboard';
 import type { SellerPurchase } from '@/domain/person';
@@ -17,21 +18,21 @@ export async function getPeriodTotals(database: SQLiteDatabase, { from, to }: Da
       `SELECT COUNT(*) AS ticket_count, SUM(total_amount) AS total,
               SUM(CASE WHEN payment_status IN (${UNSETTLED_STATUS_SQL}) THEN 1 ELSE 0 END) AS unsettled_count
        FROM purchases
-       WHERE purchase_date BETWEEN ? AND ?`,
+       WHERE purchase_date BETWEEN ? AND ? AND status <> 'cancelled'`,
       [from, to]
     ),
     database.getFirstAsync<TicketTotalsRow>(
       `SELECT COUNT(*) AS ticket_count, SUM(total_amount) AS total,
               SUM(CASE WHEN payment_status IN (${UNSETTLED_STATUS_SQL}) THEN 1 ELSE 0 END) AS unsettled_count
        FROM sales
-       WHERE sale_date BETWEEN ? AND ?`,
+       WHERE sale_date BETWEEN ? AND ? AND status <> 'cancelled'`,
       [from, to]
     ),
     database.getFirstAsync<{ total: number | null }>(
       `SELECT SUM(si.actual_profit) AS total
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
-       WHERE s.sale_date BETWEEN ? AND ?`,
+       WHERE s.sale_date BETWEEN ? AND ? AND s.status <> 'cancelled'`,
       [from, to]
     ),
     database.getFirstAsync<{ total: number | null; missing_count: number | null }>(
@@ -40,7 +41,8 @@ export async function getPeriodTotals(database: SQLiteDatabase, { from, to }: Da
        FROM purchase_items pi
        JOIN purchases p ON p.id = pi.purchase_id
        JOIN materials m ON m.id = pi.material_id
-       WHERE p.purchase_date BETWEEN ? AND ? AND pi.status <> 'cancelled' AND m.pricing_mode <> 'pakyaw'`,
+       WHERE p.purchase_date BETWEEN ? AND ? AND p.status <> 'cancelled' AND pi.status <> 'cancelled'
+         AND m.pricing_mode <> 'pakyaw'`,
       [from, to]
     ),
     database.getFirstAsync<{ expense_count: number; total: number | null }>(
@@ -78,6 +80,7 @@ type TransactionRow = {
   total_amount: number;
   profit: number | null;
   payment_status: PaymentStatus;
+  status: string;
 };
 
 type MaterialNameRow = { ticket_id: string; material_name: string };
@@ -94,7 +97,7 @@ export async function listTransactions(database: SQLiteDatabase, { from, to }: D
   const [saleRows, saleNames, purchaseRows, purchaseNames] = await Promise.all([
     database.getAllAsync<TransactionRow>(
       `SELECT s.id, s.sale_number AS ticket_number, s.buyer_name AS person_name, s.sale_date AS ticket_date,
-              s.created_at, s.total_amount, SUM(si.actual_profit) AS profit, s.payment_status
+              s.created_at, s.total_amount, SUM(si.actual_profit) AS profit, s.payment_status, s.status
        FROM sales s
        LEFT JOIN sale_items si ON si.sale_id = s.id
        WHERE s.sale_date BETWEEN ? AND ?
@@ -112,7 +115,7 @@ export async function listTransactions(database: SQLiteDatabase, { from, to }: D
     ),
     database.getAllAsync<TransactionRow>(
       `SELECT id, purchase_number AS ticket_number, seller_name AS person_name, purchase_date AS ticket_date,
-              created_at, total_amount, NULL AS profit, payment_status
+              created_at, total_amount, NULL AS profit, payment_status, status
        FROM purchases
        WHERE purchase_date BETWEEN ? AND ?`,
       [from, to]
@@ -139,6 +142,7 @@ export async function listTransactions(database: SQLiteDatabase, { from, to }: D
       totalAmount: row.total_amount,
       profit: kind === 'sale' ? (row.profit ?? 0) : null,
       paymentStatus: row.payment_status,
+      status: parseTicketStatus(row.status),
       materialNames: names.get(row.id) ?? [],
     }));
 
@@ -163,7 +167,7 @@ export async function listSellerPurchases(
     `SELECT pu.seller_id, pe.name AS person_name, pu.seller_name, pu.total_amount
      FROM purchases pu
      LEFT JOIN people pe ON pe.id = pu.seller_id
-     WHERE pu.purchase_date BETWEEN ? AND ?`,
+     WHERE pu.purchase_date BETWEEN ? AND ? AND pu.status <> 'cancelled'`,
     [from, to]
   );
 
@@ -178,7 +182,9 @@ export async function listSellerPurchases(
 type SaleHeaderRow = {
   id: string;
   sale_number: string;
+  buyer_id: string | null;
   buyer_name: string | null;
+  status: string;
   sale_date: string;
   total_amount: number;
   payment_status: PaymentStatus;
@@ -200,7 +206,7 @@ type SaleItemRow = {
 
 export async function getSaleDetail(database: SQLiteDatabase, id: string): Promise<SaleDetail | null> {
   const header = await database.getFirstAsync<SaleHeaderRow>(
-    `SELECT id, sale_number, buyer_name, sale_date, total_amount, payment_status, payment_method, notes
+    `SELECT id, sale_number, buyer_id, buyer_name, status, sale_date, total_amount, payment_status, payment_method, notes
      FROM sales
      WHERE id = ?`,
     [id]
@@ -223,7 +229,9 @@ export async function getSaleDetail(database: SQLiteDatabase, id: string): Promi
   return {
     id: header.id,
     saleNumber: header.sale_number,
+    buyerId: header.buyer_id,
     buyerName: header.buyer_name ?? UNKNOWN_PERSON_NAME,
+    status: parseTicketStatus(header.status),
     saleDate: header.sale_date,
     totalAmount: header.total_amount,
     paymentStatus: header.payment_status,

@@ -1,6 +1,7 @@
 import type { PaymentMethod, PaymentStatus } from '@/constants/payment';
 import type { PricingMode } from '@/constants/product';
 import type { PurchaseItemStatus } from '@/constants/purchase';
+import type { TicketStatus } from '@/constants/transaction';
 import type { LocalDateKey } from '@/domain/localDate';
 
 export type PurchaseListEntry = {
@@ -10,6 +11,7 @@ export type PurchaseListEntry = {
   purchaseDate: LocalDateKey;
   totalAmount: number;
   paymentStatus: PaymentStatus;
+  status: TicketStatus;
   lineCount: number;
   unsoldLineCount: number;
   materialNames: string[];
@@ -33,7 +35,9 @@ export type PurchaseDetailItem = {
 export type PurchaseDetail = {
   id: string;
   purchaseNumber: string;
+  sellerId: string | null;
   sellerName: string;
+  status: TicketStatus;
   purchaseDate: LocalDateKey;
   subtotal: number;
   totalAmount: number;
@@ -56,11 +60,12 @@ export function groupPurchasesByDay(entries: PurchaseListEntry[]): PurchaseDaySe
 
   for (const entry of entries) {
     const current = sections.at(-1);
+    const counted = entry.status === 'cancelled' ? 0 : entry.totalAmount;
     if (current && current.purchaseDate === entry.purchaseDate) {
       current.data.push(entry);
-      current.dayTotal += entry.totalAmount;
+      current.dayTotal += counted;
     } else {
-      sections.push({ purchaseDate: entry.purchaseDate, dayTotal: entry.totalAmount, data: [entry] });
+      sections.push({ purchaseDate: entry.purchaseDate, dayTotal: counted, data: [entry] });
     }
   }
 

@@ -24,7 +24,7 @@ export const TransactionRow = memo(function TransactionRow({ transaction, onPres
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${kindLabel} ${transaction.ticketNumber}, ${transaction.personName}, ${formatPeso(transaction.totalAmount)}`}
+      accessibilityLabel={`${kindLabel} ${transaction.ticketNumber}, ${transaction.personName}, ${formatPeso(transaction.totalAmount)}${transaction.status === 'cancelled' ? ', cancelled' : ''}`}
       accessibilityHint={isSale ? 'Opens the sale' : 'Opens the purchase'}
       onPress={() => onPress(transaction)}
       style={({ pressed }) => [
@@ -45,6 +45,7 @@ export const TransactionRow = memo(function TransactionRow({ transaction, onPres
         <View style={styles.bottomLine}>
           <View style={styles.badges}>
             <StatusBadge label={kindLabel} tone={isSale ? 'success' : 'neutral'} />
+            {transaction.status === 'cancelled' ? <StatusBadge label="Cancelled" tone="danger" /> : null}
             <StatusBadge label={payment.label} tone={payment.tone} />
           </View>
           {transaction.profit !== null ? (

@@ -11,6 +11,7 @@ import { MIGRATION_007_CREATE_SYNC_METADATA } from '@/db/migrations/007_create_s
 import { MIGRATION_008_ADD_SUPPLIER_PRICE_TYPE } from '@/db/migrations/008_add_supplier_price_type';
 import { MIGRATION_009_CREATE_PEOPLE } from '@/db/migrations/009_create_people';
 import { MIGRATION_010_ADD_PRICING_MODE } from '@/db/migrations/010_add_pricing_mode';
+import { MIGRATION_011_ADD_TICKET_STATUS } from '@/db/migrations/011_add_ticket_status';
 
 type Migration = {
   version: number;
@@ -57,6 +58,10 @@ const MIGRATIONS: Migration[] = [
   {
     version: 10,
     sql: MIGRATION_010_ADD_PRICING_MODE,
+  },
+  {
+    version: 11,
+    sql: MIGRATION_011_ADD_TICKET_STATUS,
   },
 ];
 

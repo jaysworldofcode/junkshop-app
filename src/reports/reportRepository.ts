@@ -45,7 +45,7 @@ async function listMaterialPerformance(database: SQLiteDatabase, { from, to }: D
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
        JOIN materials m ON m.id = si.material_id
-       WHERE s.sale_date BETWEEN ? AND ?
+       WHERE s.sale_date BETWEEN ? AND ? AND s.status <> 'cancelled'
        GROUP BY m.id`,
       [from, to]
     ),
@@ -55,7 +55,7 @@ async function listMaterialPerformance(database: SQLiteDatabase, { from, to }: D
        FROM purchase_items pi
        JOIN purchases p ON p.id = pi.purchase_id
        JOIN materials m ON m.id = pi.material_id
-       WHERE p.purchase_date BETWEEN ? AND ?
+       WHERE p.purchase_date BETWEEN ? AND ? AND p.status <> 'cancelled'
        GROUP BY m.id`,
       [from, to]
     ),
@@ -103,18 +103,24 @@ function toPeople(rows: PersonRow[]): PersonTotal[] {
 async function listDailyFigures(database: SQLiteDatabase, { from, to }: DateRange): Promise<DailyFigures[]> {
   const [sales, purchases, profit, expenses] = await Promise.all([
     database.getAllAsync<DayAmountRow>(
-      'SELECT sale_date AS day, SUM(total_amount) AS total FROM sales WHERE sale_date BETWEEN ? AND ? GROUP BY sale_date',
+      `SELECT sale_date AS day, SUM(total_amount) AS total
+       FROM sales
+       WHERE sale_date BETWEEN ? AND ? AND status <> 'cancelled'
+       GROUP BY sale_date`,
       [from, to]
     ),
     database.getAllAsync<DayAmountRow>(
-      'SELECT purchase_date AS day, SUM(total_amount) AS total FROM purchases WHERE purchase_date BETWEEN ? AND ? GROUP BY purchase_date',
+      `SELECT purchase_date AS day, SUM(total_amount) AS total
+       FROM purchases
+       WHERE purchase_date BETWEEN ? AND ? AND status <> 'cancelled'
+       GROUP BY purchase_date`,
       [from, to]
     ),
     database.getAllAsync<DayAmountRow>(
       `SELECT s.sale_date AS day, SUM(si.actual_profit) AS total
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
-       WHERE s.sale_date BETWEEN ? AND ?
+       WHERE s.sale_date BETWEEN ? AND ? AND s.status <> 'cancelled'
        GROUP BY s.sale_date`,
       [from, to]
     ),
@@ -152,7 +158,7 @@ export async function getReport(database: SQLiteDatabase, range: DateRange): Pro
     database.getAllAsync<PersonRow>(
       `SELECT COALESCE(NULLIF(TRIM(buyer_name), ''), ?) AS name, COUNT(*) AS ticket_count, SUM(total_amount) AS total
        FROM sales
-       WHERE sale_date BETWEEN ? AND ?
+       WHERE sale_date BETWEEN ? AND ? AND status <> 'cancelled'
        GROUP BY name
        ORDER BY total DESC
        LIMIT ?`,
@@ -161,7 +167,7 @@ export async function getReport(database: SQLiteDatabase, range: DateRange): Pro
     database.getAllAsync<PersonRow>(
       `SELECT TRIM(seller_name) AS name, COUNT(*) AS ticket_count, SUM(total_amount) AS total
        FROM purchases
-       WHERE purchase_date BETWEEN ? AND ?
+       WHERE purchase_date BETWEEN ? AND ? AND status <> 'cancelled'
          AND TRIM(COALESCE(seller_name, '')) <> ''
          AND LOWER(TRIM(seller_name)) <> LOWER(?)
        GROUP BY name
@@ -182,7 +188,7 @@ export async function getReport(database: SQLiteDatabase, range: DateRange): Pro
       `SELECT COUNT(*) AS line_count
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
-       WHERE s.sale_date BETWEEN ? AND ? AND si.actual_profit < 0`,
+       WHERE s.sale_date BETWEEN ? AND ? AND s.status <> 'cancelled' AND si.actual_profit < 0`,
       [from, to]
     ),
   ]);

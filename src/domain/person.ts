@@ -136,6 +136,21 @@ export function canSaveAsContact(name: string): boolean {
   return key.length > 0 && key !== normalizePersonKey(UNKNOWN_PERSON_NAME) && name.trim().length <= PERSON_NAME_MAX_LENGTH;
 }
 
+/** The seller on a purchase or the buyer on a sale. personId is null for a typed name. */
+export type TicketPerson = {
+  personId: string | null;
+  name: string;
+};
+
+export function ticketPersonError(name: string): string | null {
+  return name.trim().length > PERSON_NAME_MAX_LENGTH ? `Name must be ${PERSON_NAME_MAX_LENGTH} characters or fewer.` : null;
+}
+
+/** Expects a name that passed ticketPersonError. A blank name is stored as Unknown, the same as on Buy and Sell. */
+export function toTicketPerson(name: string, personId: string | null): TicketPerson {
+  return { personId, name: optionalText(name) ?? UNKNOWN_PERSON_NAME };
+}
+
 export type SellerPurchase = {
   sellerId: string | null;
   /** Current name of the linked person, so a rename shows on the dashboard. */

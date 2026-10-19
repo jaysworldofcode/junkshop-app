@@ -38,7 +38,7 @@ export async function listTicketPrices(database: SQLiteDatabase, materialId: str
       `SELECT p.purchase_date AS ticket_date, SUM(pi.purchase_total) AS total, SUM(pi.quantity) AS quantity
        FROM purchase_items pi
        JOIN purchases p ON p.id = pi.purchase_id
-       WHERE pi.material_id = ?
+       WHERE pi.material_id = ? AND p.status <> 'cancelled'
        GROUP BY p.purchase_date
        ORDER BY p.purchase_date DESC
        LIMIT ?`,
@@ -48,7 +48,7 @@ export async function listTicketPrices(database: SQLiteDatabase, materialId: str
       `SELECT s.sale_date AS ticket_date, SUM(si.sale_total) AS total, SUM(si.quantity) AS quantity
        FROM sale_items si
        JOIN sales s ON s.id = si.sale_id
-       WHERE si.material_id = ?
+       WHERE si.material_id = ? AND s.status <> 'cancelled'
        GROUP BY s.sale_date
        ORDER BY s.sale_date DESC
        LIMIT ?`,

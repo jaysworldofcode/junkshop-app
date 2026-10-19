@@ -40,7 +40,7 @@ export const PurchaseListRow = memo(function PurchaseListRow({ purchase, onPress
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${purchase.purchaseNumber}, ${purchase.sellerName}, ${formatPeso(purchase.totalAmount)}, ${unsoldLabel(purchase)}`}
+      accessibilityLabel={`${purchase.purchaseNumber}, ${purchase.sellerName}, ${formatPeso(purchase.totalAmount)}, ${purchase.status === 'cancelled' ? 'Cancelled' : unsoldLabel(purchase)}`}
       accessibilityHint="Opens the purchase"
       onPress={() => onPress(purchase)}
       style={({ pressed }) => [
@@ -59,7 +59,11 @@ export const PurchaseListRow = memo(function PurchaseListRow({ purchase, onPress
           {purchase.purchaseNumber} · {purchase.materialNames.join(', ')}
         </Text>
         <View style={styles.badges}>
-          <StatusBadge label={unsoldLabel(purchase)} tone={hasUnsold ? 'warning' : 'success'} />
+          {purchase.status === 'cancelled' ? (
+            <StatusBadge label="Cancelled" tone="danger" />
+          ) : (
+            <StatusBadge label={unsoldLabel(purchase)} tone={hasUnsold ? 'warning' : 'success'} />
+          )}
           <StatusBadge label={payment.label} tone={payment.tone} />
         </View>
       </View>

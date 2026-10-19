@@ -7,7 +7,9 @@ import {
   UNSOLD_PURCHASE_ITEM_STATUSES,
   type PurchaseItemStatus,
 } from '@/constants/purchase';
+import { parseTicketStatus, type TicketStatus } from '@/constants/transaction';
 import { runInTransaction } from '@/db/runInTransaction';
+import type { TicketPerson } from '@/domain/person';
 import { formatPurchaseNumber, type NewPurchase, type SavedPurchase } from '@/domain/purchase';
 import type { PurchaseDetail, PurchaseListEntry } from '@/domain/purchaseHistory';
 
@@ -82,6 +84,7 @@ type PurchaseListRow = {
   purchase_date: string;
   total_amount: number;
   payment_status: PaymentStatus;
+  status: string;
   line_count: number;
   unsold_line_count: number;
 };
@@ -96,7 +99,7 @@ const UNSOLD_STATUS_SQL = UNSOLD_PURCHASE_ITEM_STATUSES.map((status) => `'${stat
 export async function listPurchases(database: SQLiteDatabase): Promise<PurchaseListEntry[]> {
   const [rows, materialRows] = await Promise.all([
     database.getAllAsync<PurchaseListRow>(
-      `SELECT p.id, p.purchase_number, p.seller_name, p.purchase_date, p.total_amount, p.payment_status,
+      `SELECT p.id, p.purchase_number, p.seller_name, p.purchase_date, p.total_amount, p.payment_status, p.status,
               COUNT(pi.id) AS line_count,
               SUM(CASE WHEN pi.status IN (${UNSOLD_STATUS_SQL}) THEN 1 ELSE 0 END) AS unsold_line_count
        FROM purchases p
@@ -124,6 +127,7 @@ export async function listPurchases(database: SQLiteDatabase): Promise<PurchaseL
     purchaseDate: row.purchase_date,
     totalAmount: row.total_amount,
     paymentStatus: row.payment_status,
+    status: parseTicketStatus(row.status),
     lineCount: row.line_count,
     unsoldLineCount: row.unsold_line_count ?? 0,
     materialNames: namesByPurchase.get(row.id) ?? [],
@@ -133,7 +137,9 @@ export async function listPurchases(database: SQLiteDatabase): Promise<PurchaseL
 type PurchaseHeaderRow = {
   id: string;
   purchase_number: string;
+  seller_id: string | null;
   seller_name: string | null;
+  status: string;
   purchase_date: string;
   subtotal: number;
   total_amount: number;
@@ -160,7 +166,7 @@ type PurchaseItemRow = {
 
 export async function getPurchaseDetail(database: SQLiteDatabase, id: string): Promise<PurchaseDetail | null> {
   const header = await database.getFirstAsync<PurchaseHeaderRow>(
-    `SELECT id, purchase_number, seller_name, purchase_date, subtotal, total_amount,
+    `SELECT id, purchase_number, seller_id, seller_name, status, purchase_date, subtotal, total_amount,
             payment_status, payment_method, notes, created_at
      FROM purchases
      WHERE id = ?`,
@@ -184,7 +190,9 @@ export async function getPurchaseDetail(database: SQLiteDatabase, id: string): P
   return {
     id: header.id,
     purchaseNumber: header.purchase_number,
+    sellerId: header.seller_id,
     sellerName: header.seller_name ?? UNKNOWN_PERSON_NAME,
+    status: parseTicketStatus(header.status),
     purchaseDate: header.purchase_date,
     subtotal: header.subtotal,
     totalAmount: header.total_amount,
@@ -207,6 +215,34 @@ export async function getPurchaseDetail(database: SQLiteDatabase, id: string): P
       status: item.status,
     })),
   };
+}
+
+export async function updatePurchaseSeller(
+  database: SQLiteDatabase,
+  id: string,
+  { personId, name }: TicketPerson,
+  timestamp: string
+): Promise<void> {
+  await database.runAsync('UPDATE purchases SET seller_id = ?, seller_name = ?, updated_at = ? WHERE id = ?', [
+    personId,
+    name,
+    timestamp,
+    id,
+  ]);
+}
+
+export async function setPurchaseStatus(
+  database: SQLiteDatabase,
+  id: string,
+  status: TicketStatus,
+  timestamp: string
+): Promise<void> {
+  await database.runAsync('UPDATE purchases SET status = ?, cancelled_at = ?, updated_at = ? WHERE id = ?', [
+    status,
+    status === 'cancelled' ? timestamp : null,
+    timestamp,
+    id,
+  ]);
 }
 
 async function nextPurchaseNumber(database: SQLiteDatabase, purchaseDate: string): Promise<string> {

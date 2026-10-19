@@ -1,5 +1,7 @@
+import { useCallback } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useLocalSearchParams } from 'expo-router';
+import { useSQLiteContext } from 'expo-sqlite';
 
 import { DetailRow } from '@/components/DetailRow';
 import { ErrorBanner } from '@/components/ErrorBanner';
@@ -8,6 +10,7 @@ import { ReceiptPrintButton } from '@/components/ReceiptPrintButton';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
 import { StatusBadge } from '@/components/StatusBadge';
+import { TicketManageSection } from '@/components/TicketManageSection';
 import {
   FONT_SIZE_BODY,
   FONT_SIZE_CAPTION,
@@ -20,12 +23,16 @@ import {
 } from '@/constants/layout';
 import { PAYMENT_METHOD_LABELS } from '@/constants/payment';
 import { isPakyawMode } from '@/constants/product';
+import type { TicketStatus } from '@/constants/transaction';
 import { useSaleDetail } from '@/dashboard/useDashboard';
 import { sumSaleItems, type SaleDetail } from '@/domain/dashboard';
 import { formatDateLabel } from '@/domain/localDate';
 import { formatPeso } from '@/domain/money';
+import type { TicketPerson } from '@/domain/person';
 import { formatQuantity } from '@/domain/quantity';
+import { nowIso } from '@/domain/timestamps';
 import { paymentBadge } from '@/purchases/purchaseBadges';
+import { setSaleStatus, updateSaleBuyer } from '@/sales/saleRepository';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 export default function SaleDetailScreen() {
@@ -44,7 +51,7 @@ export default function SaleDetailScreen() {
 
 function SaleDetailContent({ saleId }: { saleId: string }) {
   const { colors } = useAppTheme();
-  const { data: sale, isLoading, error } = useSaleDetail(saleId);
+  const { data: sale, isLoading, error, reload } = useSaleDetail(saleId);
 
   if (isLoading && !sale) {
     return (
@@ -64,22 +71,46 @@ function SaleDetailContent({ saleId }: { saleId: string }) {
     );
   }
 
-  return <SaleDetailView sale={sale} />;
+  return <SaleDetailView sale={sale} onReload={reload} />;
 }
 
-function SaleDetailView({ sale }: { sale: SaleDetail }) {
+function SaleDetailView({ sale, onReload }: { sale: SaleDetail; onReload: () => Promise<void> }) {
   const { colors, colorScheme } = useAppTheme();
+  const database = useSQLiteContext();
   const payment = paymentBadge(sale.paymentStatus);
   const totals = sumSaleItems(sale.items);
+
+  const onSavePerson = useCallback(
+    async (person: TicketPerson) => {
+      await updateSaleBuyer(database, sale.id, person, nowIso());
+      await onReload();
+    },
+    [database, onReload, sale.id]
+  );
+
+  const onSetStatus = useCallback(
+    async (status: TicketStatus) => {
+      await setSaleStatus(database, sale.id, status, nowIso());
+      await onReload();
+    },
+    [database, onReload, sale.id]
+  );
 
   return (
     <Screen padded={false}>
       <Stack.Screen options={{ title: sale.saleNumber }} />
-      <ScrollView contentContainerStyle={styles.content} indicatorStyle={colorScheme === 'dark' ? 'white' : 'black'}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        indicatorStyle={colorScheme === 'dark' ? 'white' : 'black'}
+      >
         <View style={styles.hero}>
           <Text style={[styles.heroLabel, { color: colors.muted }]}>SOLD TO {sale.buyerName.toUpperCase()}</Text>
           <Text style={[styles.heroTotal, { color: colors.text }]}>{formatPeso(sale.totalAmount)}</Text>
-          <StatusBadge label={payment.label} tone={payment.tone} />
+          <View style={styles.heroBadges}>
+            {sale.status === 'cancelled' ? <StatusBadge label="Cancelled" tone="danger" /> : null}
+            <StatusBadge label={payment.label} tone={payment.tone} />
+          </View>
         </View>
 
         <ReceiptPrintButton kind="sale" id={sale.id} />
@@ -87,7 +118,6 @@ function SaleDetailView({ sale }: { sale: SaleDetail }) {
         <SectionCard title="Ticket">
           <DetailRow label="Sale number" value={sale.saleNumber} />
           <DetailRow label="Date" value={formatDateLabel(sale.saleDate)} />
-          <DetailRow label="Buyer" value={sale.buyerName} />
           <DetailRow
             label="Payment"
             value={[payment.label, sale.paymentMethod ? PAYMENT_METHOD_LABELS[sale.paymentMethod] : null]
@@ -96,6 +126,16 @@ function SaleDetailView({ sale }: { sale: SaleDetail }) {
           />
           {sale.notes ? <DetailRow label="Notes" value={sale.notes} /> : null}
         </SectionCard>
+
+        <TicketManageSection
+          role="buyer"
+          ticketKind="sale"
+          personId={sale.buyerId}
+          personName={sale.buyerName}
+          status={sale.status}
+          onSavePerson={onSavePerson}
+          onSetStatus={onSetStatus}
+        />
 
         <View style={styles.items}>
           <Text accessibilityRole="header" style={[styles.itemsTitle, { color: colors.muted }]}>
@@ -158,6 +198,10 @@ const styles = StyleSheet.create({
     fontSize: FONT_SIZE_TITLE + 12,
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
+  },
+  heroBadges: {
+    flexDirection: 'row',
+    gap: SPACE_SM,
   },
   items: {
     gap: SPACE_SM + 4,

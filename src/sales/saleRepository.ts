@@ -1,6 +1,8 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import type { TicketStatus } from '@/constants/transaction';
 import { runInTransaction } from '@/db/runInTransaction';
+import type { TicketPerson } from '@/domain/person';
 import { formatSaleNumber, type NewSale, type SavedSale } from '@/domain/sale';
 
 export async function saveSale(database: SQLiteDatabase, { sale, items }: NewSale): Promise<SavedSale> {
@@ -61,6 +63,34 @@ export async function saveSale(database: SQLiteDatabase, { sale, items }: NewSal
     actualProfit: items.reduce((sum, item) => sum + item.actualProfit, 0),
     lineCount: items.length,
   };
+}
+
+export async function updateSaleBuyer(
+  database: SQLiteDatabase,
+  id: string,
+  { personId, name }: TicketPerson,
+  timestamp: string
+): Promise<void> {
+  await database.runAsync('UPDATE sales SET buyer_id = ?, buyer_name = ?, updated_at = ? WHERE id = ?', [
+    personId,
+    name,
+    timestamp,
+    id,
+  ]);
+}
+
+export async function setSaleStatus(
+  database: SQLiteDatabase,
+  id: string,
+  status: TicketStatus,
+  timestamp: string
+): Promise<void> {
+  await database.runAsync('UPDATE sales SET status = ?, cancelled_at = ?, updated_at = ? WHERE id = ?', [
+    status,
+    status === 'cancelled' ? timestamp : null,
+    timestamp,
+    id,
+  ]);
 }
 
 async function nextSaleNumber(database: SQLiteDatabase, saleDate: string): Promise<string> {

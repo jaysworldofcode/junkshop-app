@@ -86,11 +86,15 @@ export type PersonActivity = {
 export async function getPersonActivity(database: SQLiteDatabase, id: string): Promise<PersonActivity> {
   const [purchases, sales] = await Promise.all([
     database.getFirstAsync<{ ticket_count: number; total: number | null }>(
-      'SELECT COUNT(*) AS ticket_count, SUM(total_amount) AS total FROM purchases WHERE seller_id = ?',
+      `SELECT COUNT(*) AS ticket_count, SUM(total_amount) AS total
+       FROM purchases
+       WHERE seller_id = ? AND status <> 'cancelled'`,
       [id]
     ),
     database.getFirstAsync<{ ticket_count: number; total: number | null }>(
-      'SELECT COUNT(*) AS ticket_count, SUM(total_amount) AS total FROM sales WHERE buyer_id = ?',
+      `SELECT COUNT(*) AS ticket_count, SUM(total_amount) AS total
+       FROM sales
+       WHERE buyer_id = ? AND status <> 'cancelled'`,
       [id]
     ),
   ]);

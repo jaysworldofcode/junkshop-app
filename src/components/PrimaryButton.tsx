@@ -8,7 +8,7 @@ type PrimaryButtonProps = {
   label: string;
   onPress: () => void;
   icon?: SymbolViewProps['name'];
-  variant?: 'solid' | 'outline';
+  variant?: 'solid' | 'outline' | 'danger';
   disabled?: boolean;
   isLoading?: boolean;
 };
@@ -23,8 +23,9 @@ export function PrimaryButton({
 }: PrimaryButtonProps) {
   const { colors } = useAppTheme();
   const isDisabled = disabled || isLoading;
-  const isSolid = variant === 'solid';
-  const foreground = isSolid ? colors.primaryContrast : colors.primary;
+  const isOutline = variant === 'outline';
+  const isDanger = variant === 'danger';
+  const foreground = isOutline ? colors.primary : isDanger ? '#FFFFFF' : colors.primaryContrast;
 
   return (
     <Pressable
@@ -35,9 +36,9 @@ export function PrimaryButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.button,
-        isSolid
-          ? { backgroundColor: colors.primary }
-          : { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 1.5 },
+        isOutline
+          ? { backgroundColor: colors.surface, borderColor: colors.primary, borderWidth: 1.5 }
+          : { backgroundColor: isDanger ? colors.danger : colors.primary },
         { opacity: isDisabled ? 0.55 : pressed ? 0.85 : 1 },
       ]}
     >
