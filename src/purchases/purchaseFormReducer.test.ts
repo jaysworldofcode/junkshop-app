@@ -83,6 +83,32 @@ test('resets to a fresh ticket on the same date after saving', () => {
   assert.equal(state.lastSaved?.purchaseNumber, 'P-20261005-001');
 });
 
+test('a ticket left on today moves to the new day once the phone date changes', () => {
+  let state = createPurchaseFormState('2026-10-19');
+  state = purchaseFormReducer(state, {
+    type: 'submitSuccess',
+    saved: { id: 'p1', purchaseNumber: 'P-20261019-001', sellerName: 'Pedro', totalAmount: 1, lineCount: 1 },
+  });
+
+  state = purchaseFormReducer(state, { type: 'syncToday', today: '2026-10-20' });
+
+  assert.equal(state.draft.purchaseDate, '2026-10-20');
+  assert.equal(state.today, '2026-10-20');
+});
+
+test('a back-dated ticket keeps its date when the day changes', () => {
+  let state = createPurchaseFormState('2026-10-19');
+  state = purchaseFormReducer(state, { type: 'changeHeader', field: 'purchaseDate', value: '2026-10-15' });
+  state = purchaseFormReducer(state, {
+    type: 'submitSuccess',
+    saved: { id: 'p1', purchaseNumber: 'P-20261015-001', sellerName: 'Pedro', totalAmount: 1, lineCount: 1 },
+  });
+
+  state = purchaseFormReducer(state, { type: 'syncToday', today: '2026-10-20' });
+
+  assert.equal(state.draft.purchaseDate, '2026-10-15');
+});
+
 test('picking a saved seller links them, and typing a new name unlinks them', () => {
   let state = createPurchaseFormState(TODAY);
   state = purchaseFormReducer(state, { type: 'pickSeller', personId: 'person-1', name: 'Pedro' });

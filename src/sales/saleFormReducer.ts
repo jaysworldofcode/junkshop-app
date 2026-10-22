@@ -7,6 +7,8 @@ type SaleHeaderField = 'saleDate' | 'buyerName' | 'paymentStatus' | 'paymentMeth
 
 export type SaleFormState = {
   draft: SaleDraft;
+  /** The phone's day when the form last checked. A ticket dated this day moves forward when the day changes. */
+  today: LocalDateKey;
   errors: SaleErrors;
   nextLineNumber: number;
   isSubmitting: boolean;
@@ -25,7 +27,8 @@ export type SaleFormAction =
   | { type: 'submitStart' }
   | { type: 'submitSuccess'; saved: SavedSale }
   | { type: 'submitFailure'; message: string }
-  | { type: 'dismissSaved' };
+  | { type: 'dismissSaved' }
+  | { type: 'syncToday'; today: LocalDateKey };
 
 const FIRST_LINE_NUMBER = 1;
 
@@ -33,8 +36,9 @@ function lineKey(lineNumber: number): string {
   return `line-${lineNumber}`;
 }
 
-export function createSaleFormState(saleDate: LocalDateKey): SaleFormState {
+export function createSaleFormState(saleDate: LocalDateKey, today: LocalDateKey = saleDate): SaleFormState {
   return {
+    today,
     draft: {
       saleDate,
       buyerName: '',
@@ -132,7 +136,7 @@ export function saleFormReducer(state: SaleFormState, action: SaleFormAction): S
     case 'submitStart':
       return { ...state, isSubmitting: true, submitError: null };
     case 'submitSuccess': {
-      const fresh = createSaleFormState(state.draft.saleDate);
+      const fresh = createSaleFormState(state.draft.saleDate, state.today);
       return {
         ...fresh,
         draft: { ...fresh.draft, lines: [createEmptySaleLine(lineKey(state.nextLineNumber))] },
@@ -144,9 +148,25 @@ export function saleFormReducer(state: SaleFormState, action: SaleFormAction): S
       return { ...state, isSubmitting: false, submitError: action.message };
     case 'dismissSaved':
       return { ...state, lastSaved: null };
+    case 'syncToday':
+      return syncSaleToday(state, action.today);
     default:
       return state;
   }
+}
+
+/** Moves a ticket still dated the old today onto the new day. Back-dated tickets keep their date. */
+export function syncSaleToday(state: SaleFormState, today: LocalDateKey): SaleFormState {
+  if (state.today === today) {
+    return state;
+  }
+
+  const followsToday = state.draft.saleDate === state.today;
+  return {
+    ...state,
+    today,
+    draft: followsToday ? { ...state.draft, saleDate: today } : state.draft,
+  };
 }
 
 function clearLineErrors(

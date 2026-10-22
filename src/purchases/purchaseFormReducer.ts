@@ -13,6 +13,8 @@ type PurchaseHeaderField = 'purchaseDate' | 'sellerName' | 'paymentStatus' | 'pa
 
 export type PurchaseFormState = {
   draft: PurchaseDraft;
+  /** The phone's day when the form last checked. A ticket dated this day moves forward when the day changes. */
+  today: LocalDateKey;
   errors: PurchaseErrors;
   nextLineNumber: number;
   isSubmitting: boolean;
@@ -38,7 +40,8 @@ export type PurchaseFormAction =
   | { type: 'submitStart' }
   | { type: 'submitSuccess'; saved: SavedPurchase }
   | { type: 'submitFailure'; message: string }
-  | { type: 'dismissSaved' };
+  | { type: 'dismissSaved' }
+  | { type: 'syncToday'; today: LocalDateKey };
 
 const FIRST_LINE_NUMBER = 1;
 
@@ -46,8 +49,9 @@ function lineKey(lineNumber: number): string {
   return `line-${lineNumber}`;
 }
 
-export function createPurchaseFormState(purchaseDate: LocalDateKey): PurchaseFormState {
+export function createPurchaseFormState(purchaseDate: LocalDateKey, today: LocalDateKey = purchaseDate): PurchaseFormState {
   return {
+    today,
     draft: {
       purchaseDate,
       sellerName: '',
@@ -154,7 +158,7 @@ export function purchaseFormReducer(state: PurchaseFormState, action: PurchaseFo
     case 'submitStart':
       return { ...state, isSubmitting: true, submitError: null };
     case 'submitSuccess': {
-      const fresh = createPurchaseFormState(state.draft.purchaseDate);
+      const fresh = createPurchaseFormState(state.draft.purchaseDate, state.today);
       return {
         ...fresh,
         draft: { ...fresh.draft, lines: [createEmptyPurchaseLine(lineKey(state.nextLineNumber))] },
@@ -166,9 +170,25 @@ export function purchaseFormReducer(state: PurchaseFormState, action: PurchaseFo
       return { ...state, isSubmitting: false, submitError: action.message };
     case 'dismissSaved':
       return { ...state, lastSaved: null };
+    case 'syncToday':
+      return syncPurchaseToday(state, action.today);
     default:
       return state;
   }
+}
+
+/** Moves a ticket still dated the old today onto the new day. Back-dated tickets keep their date. */
+export function syncPurchaseToday(state: PurchaseFormState, today: LocalDateKey): PurchaseFormState {
+  if (state.today === today) {
+    return state;
+  }
+
+  const followsToday = state.draft.purchaseDate === state.today;
+  return {
+    ...state,
+    today,
+    draft: followsToday ? { ...state.draft, purchaseDate: today } : state.draft,
+  };
 }
 
 function clearLineError(errors: PurchaseErrors, key: string, field: PurchaseLineField): PurchaseErrors {

@@ -27,7 +27,36 @@ export type Product = {
 
 export type ProductWithUsage = Product & {
   purchaseCount: number;
+  saleCount: number;
 };
+
+export type ProductUsage = 'purchase' | 'sale';
+
+export const MOST_USED_PRODUCT_LIMIT = 6;
+
+export function usageCount(product: ProductWithUsage, usage: ProductUsage): number {
+  return usage === 'sale' ? product.saleCount : product.purchaseCount;
+}
+
+function compareByName(a: Product, b: Product): number {
+  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+}
+
+/** The most used products first, then every other product A to Z. A product appears in only one group. */
+export function groupProductsByUsage(
+  products: ProductWithUsage[],
+  usage: ProductUsage,
+  limit: number = MOST_USED_PRODUCT_LIMIT
+): { mostUsed: ProductWithUsage[]; alphabetical: ProductWithUsage[] } {
+  const mostUsed = products
+    .filter((product) => usageCount(product, usage) > 0)
+    .sort((a, b) => usageCount(b, usage) - usageCount(a, usage) || compareByName(a, b))
+    .slice(0, limit);
+  const mostUsedIds = new Set(mostUsed.map((product) => product.id));
+  const alphabetical = products.filter((product) => !mostUsedIds.has(product.id)).sort(compareByName);
+
+  return { mostUsed, alphabetical };
+}
 
 export type ProductDraft = {
   name: string;

@@ -101,7 +101,7 @@ function toPeople(rows: PersonRow[]): PersonTotal[] {
 }
 
 async function listDailyFigures(database: SQLiteDatabase, { from, to }: DateRange): Promise<DailyFigures[]> {
-  const [sales, purchases, profit, expenses] = await Promise.all([
+  const [sales, purchases, profit, buyProfit, expenses] = await Promise.all([
     database.getAllAsync<DayAmountRow>(
       `SELECT sale_date AS day, SUM(total_amount) AS total
        FROM sales
@@ -125,6 +125,16 @@ async function listDailyFigures(database: SQLiteDatabase, { from, to }: DateRang
       [from, to]
     ),
     database.getAllAsync<DayAmountRow>(
+      `SELECT p.purchase_date AS day, SUM(pi.expected_profit) AS total
+       FROM purchase_items pi
+       JOIN purchases p ON p.id = pi.purchase_id
+       JOIN materials m ON m.id = pi.material_id
+       WHERE p.purchase_date BETWEEN ? AND ? AND p.status <> 'cancelled' AND pi.status <> 'cancelled'
+         AND m.pricing_mode <> 'pakyaw' AND pi.expected_profit IS NOT NULL
+       GROUP BY p.purchase_date`,
+      [from, to]
+    ),
+    database.getAllAsync<DayAmountRow>(
       'SELECT expense_date AS day, SUM(amount) AS total FROM expenses WHERE expense_date BETWEEN ? AND ? GROUP BY expense_date',
       [from, to]
     ),
@@ -133,7 +143,14 @@ async function listDailyFigures(database: SQLiteDatabase, { from, to }: DateRang
   const days = new Map<string, DailyFigures>();
   const add = (rows: DayAmountRow[], field: Exclude<keyof DailyFigures, 'date'>) => {
     for (const row of rows) {
-      const day = days.get(row.day) ?? { date: row.day, sales: 0, purchases: 0, profit: 0, expenses: 0 };
+      const day = days.get(row.day) ?? {
+        date: row.day,
+        sales: 0,
+        purchases: 0,
+        profit: 0,
+        buyProfit: 0,
+        expenses: 0,
+      };
       day[field] += row.total;
       days.set(row.day, day);
     }
@@ -142,6 +159,7 @@ async function listDailyFigures(database: SQLiteDatabase, { from, to }: DateRang
   add(sales, 'sales');
   add(purchases, 'purchases');
   add(profit, 'profit');
+  add(buyProfit, 'buyProfit');
   add(expenses, 'expenses');
 
   return [...days.values()];

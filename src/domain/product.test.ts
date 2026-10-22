@@ -3,6 +3,7 @@ import { test } from 'node:test';
 
 import {
   createEmptyProductDraft,
+  groupProductsByUsage,
   hasFieldErrors,
   isSameActiveProduct,
   normalizeProductKey,
@@ -10,6 +11,7 @@ import {
   priceChangesFromDraft,
   toLikeSearch,
   validateProductDraft,
+  type ProductWithUsage,
 } from './product';
 import { NO_PRICES } from './materialPrice';
 
@@ -79,4 +81,46 @@ test('a pakyaw product skips the price list', () => {
   };
   assert.equal(hasFieldErrors(validateProductDraft(draft)), false);
   assert.deepEqual(priceChangesFromDraft(draft, 'fridge', NO_PRICES), []);
+});
+
+function usedProduct(name: string, purchaseCount: number, saleCount = 0): ProductWithUsage {
+  return {
+    id: name,
+    name,
+    code: null,
+    category: null,
+    unit: 'kg',
+    pricingMode: 'per_unit',
+    isActive: true,
+    createdAt: '',
+    updatedAt: '',
+    purchaseCount,
+    saleCount,
+  };
+}
+
+test('lists the six most used products first, then the rest A to Z without repeats', () => {
+  const products = ['Zinc', 'Copper', 'Brass', 'Tin', 'Steel', 'Lead', 'Iron', 'aluminum', 'Bottles'].map(
+    (name, index) => usedProduct(name, name === 'Bottles' ? 0 : index + 1)
+  );
+
+  const { mostUsed, alphabetical } = groupProductsByUsage(products, 'purchase');
+
+  assert.deepEqual(
+    mostUsed.map((product) => product.name),
+    ['aluminum', 'Iron', 'Lead', 'Steel', 'Tin', 'Brass']
+  );
+  assert.deepEqual(
+    alphabetical.map((product) => product.name),
+    ['Bottles', 'Copper', 'Zinc']
+  );
+});
+
+test('ranks the sell picker by sales, and leaves never-used products out of the top list', () => {
+  const products = [usedProduct('Copper', 9, 1), usedProduct('Brass', 0, 4), usedProduct('Tin', 3, 0)];
+
+  const { mostUsed, alphabetical } = groupProductsByUsage(products, 'sale');
+
+  assert.deepEqual(mostUsed.map((product) => product.name), ['Brass', 'Copper']);
+  assert.deepEqual(alphabetical.map((product) => product.name), ['Tin']);
 });

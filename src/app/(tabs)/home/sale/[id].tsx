@@ -26,13 +26,13 @@ import { isPakyawMode } from '@/constants/product';
 import type { TicketStatus } from '@/constants/transaction';
 import { useSaleDetail } from '@/dashboard/useDashboard';
 import { sumSaleItems, type SaleDetail } from '@/domain/dashboard';
-import { formatDateLabel } from '@/domain/localDate';
+import type { LocalDateKey } from '@/domain/localDate';
 import { formatPeso } from '@/domain/money';
 import type { TicketPerson } from '@/domain/person';
 import { formatQuantity } from '@/domain/quantity';
 import { nowIso } from '@/domain/timestamps';
 import { paymentBadge } from '@/purchases/purchaseBadges';
-import { setSaleStatus, updateSaleBuyer } from '@/sales/saleRepository';
+import { setSaleStatus, updateSaleBuyer, updateSaleDate } from '@/sales/saleRepository';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 export default function SaleDetailScreen() {
@@ -88,6 +88,14 @@ function SaleDetailView({ sale, onReload }: { sale: SaleDetail; onReload: () => 
     [database, onReload, sale.id]
   );
 
+  const onSaveDate = useCallback(
+    async (date: LocalDateKey) => {
+      await updateSaleDate(database, sale.id, date, nowIso());
+      await onReload();
+    },
+    [database, onReload, sale.id]
+  );
+
   const onSetStatus = useCallback(
     async (status: TicketStatus) => {
       await setSaleStatus(database, sale.id, status, nowIso());
@@ -117,7 +125,6 @@ function SaleDetailView({ sale, onReload }: { sale: SaleDetail; onReload: () => 
 
         <SectionCard title="Ticket">
           <DetailRow label="Sale number" value={sale.saleNumber} />
-          <DetailRow label="Date" value={formatDateLabel(sale.saleDate)} />
           <DetailRow
             label="Payment"
             value={[payment.label, sale.paymentMethod ? PAYMENT_METHOD_LABELS[sale.paymentMethod] : null]
@@ -132,8 +139,10 @@ function SaleDetailView({ sale, onReload }: { sale: SaleDetail; onReload: () => 
           ticketKind="sale"
           personId={sale.buyerId}
           personName={sale.buyerName}
+          ticketDate={sale.saleDate}
           status={sale.status}
           onSavePerson={onSavePerson}
+          onSaveDate={onSaveDate}
           onSetStatus={onSetStatus}
         />
 

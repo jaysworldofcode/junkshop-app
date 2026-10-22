@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { router } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 
@@ -23,7 +23,14 @@ import type { PriceType } from '@/constants/price';
 import { isPakyawMode } from '@/constants/product';
 import type { ProductPrices } from '@/domain/materialPrice';
 import { formatPeso } from '@/domain/money';
-import { normalizeProductKey, type Product, type ProductWithUsage } from '@/domain/product';
+import {
+  groupProductsByUsage,
+  normalizeProductKey,
+  usageCount,
+  type Product,
+  type ProductUsage,
+  type ProductWithUsage,
+} from '@/domain/product';
 import { useAppTheme } from '@/theme/useAppTheme';
 
 type ProductPickerModalProps = {
@@ -36,12 +43,15 @@ type ProductPickerModalProps = {
   onClose: () => void;
 };
 
-function usageLabel(product: ProductWithUsage): string | null {
-  if (product.purchaseCount === 0) {
+type ProductSection = { title: string; data: ProductWithUsage[] };
+
+function usageLabel(product: ProductWithUsage, usage: ProductUsage): string | null {
+  const count = usageCount(product, usage);
+  if (count === 0) {
     return null;
   }
 
-  return `Bought ${product.purchaseCount} time${product.purchaseCount === 1 ? '' : 's'}`;
+  return `${usage === 'sale' ? 'Sold' : 'Bought'} ${count} time${count === 1 ? '' : 's'}`;
 }
 
 function matchesSearch(product: Product, search: string): boolean {
@@ -63,10 +73,17 @@ export function ProductPickerModal({
   const { colors, colorScheme } = useAppTheme();
   const [search, setSearch] = useState('');
 
-  const filtered = useMemo(
-    () => (search.trim().length === 0 ? products : products.filter((product) => matchesSearch(product, search))),
-    [products, search]
-  );
+  const usage: ProductUsage = priceType === 'sell' ? 'sale' : 'purchase';
+
+  const sections = useMemo((): ProductSection[] => {
+    const filtered =
+      search.trim().length === 0 ? products : products.filter((product) => matchesSearch(product, search));
+    const { mostUsed, alphabetical } = groupProductsByUsage(filtered, usage);
+    return [
+      { title: 'Most used', data: mostUsed },
+      { title: mostUsed.length > 0 ? 'All other products (A–Z)' : 'All products (A–Z)', data: alphabetical },
+    ].filter((section) => section.data.length > 0);
+  }, [products, search, usage]);
 
   const close = () => {
     setSearch('');
@@ -91,13 +108,15 @@ export function ProductPickerModal({
           </View>
 
           <SearchField value={search} onChangeText={setSearch} placeholder="Search name, code, or category" />
-          {products.length > 0 ? (
-            <Text style={[styles.helper, { color: colors.muted }]}>Most used products are shown first.</Text>
-          ) : null}
-
-          <FlatList
-            data={filtered}
+          <SectionList
+            sections={sections}
             keyExtractor={(item) => item.id}
+            stickySectionHeadersEnabled={false}
+            renderSectionHeader={({ section }) => (
+              <Text accessibilityRole="header" style={[styles.sectionTitle, { color: colors.muted }]}>
+                {section.title}
+              </Text>
+            )}
             keyboardShouldPersistTaps="handled"
             indicatorStyle={colorScheme === 'dark' ? 'white' : 'black'}
             contentContainerStyle={styles.list}
@@ -126,7 +145,7 @@ export function ProductPickerModal({
               const isSelected = item.id === selectedId;
               const isPakyaw = isPakyawMode(item.pricingMode);
               const shownPrice = isPakyaw ? null : pricesByMaterial.get(item.id)?.[priceType];
-              const details = [usageLabel(item), item.code, item.category].filter(Boolean).join(' · ');
+              const details = [usageLabel(item, usage), item.code, item.category].filter(Boolean).join(' · ');
 
               return (
                 <Pressable
@@ -220,9 +239,12 @@ const styles = StyleSheet.create({
   optionDetails: {
     fontSize: FONT_SIZE_CAPTION,
   },
-  helper: {
+  sectionTitle: {
     fontSize: FONT_SIZE_CAPTION,
-    marginTop: -SPACE_SM,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: SPACE_SM,
   },
   priceBox: {
     alignItems: 'flex-end',

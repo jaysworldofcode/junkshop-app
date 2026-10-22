@@ -15,6 +15,9 @@ export type ThemeColors = {
   border: string;
   overlay: string;
   inactive: string;
+  /** The Buy and Profit lines on charts. Sell uses primary. */
+  chartBuy: string;
+  chartProfit: string;
 };
 
 export const LIGHT_COLORS: ThemeColors = {
@@ -31,6 +34,8 @@ export const LIGHT_COLORS: ThemeColors = {
   border: '#D6D3D1',
   overlay: '#E7E5E4',
   inactive: '#A8A29E',
+  chartBuy: '#2563EB',
+  chartProfit: '#EA580C',
 };
 
 export const DARK_COLORS: ThemeColors = {
@@ -47,6 +52,8 @@ export const DARK_COLORS: ThemeColors = {
   border: '#44403C',
   overlay: '#292524',
   inactive: '#78716C',
+  chartBuy: '#60A5FA',
+  chartProfit: '#FB923C',
 };
 
 export const THEME_COLORS: Record<ColorScheme, ThemeColors> = {

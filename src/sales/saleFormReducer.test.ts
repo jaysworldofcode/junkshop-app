@@ -42,6 +42,16 @@ test('a saved sale starts a fresh ticket on the same date', () => {
   assert.equal(state.lastSaved?.saleNumber, 'S-20261005-001');
 });
 
+test('a ticket left on today moves to the new day, a back-dated one does not', () => {
+  const leftOnToday = saleFormReducer(createSaleFormState('2026-10-19'), { type: 'syncToday', today: '2026-10-20' });
+  assert.equal(leftOnToday.draft.saleDate, '2026-10-20');
+
+  let backDated = createSaleFormState('2026-10-19');
+  backDated = saleFormReducer(backDated, { type: 'changeHeader', field: 'saleDate', value: '2026-10-15' });
+  backDated = saleFormReducer(backDated, { type: 'syncToday', today: '2026-10-20' });
+  assert.equal(backDated.draft.saleDate, '2026-10-15');
+});
+
 test('picking a saved buyer links them, and typing a new name unlinks them', () => {
   let state = createSaleFormState('2026-10-06');
   state = saleFormReducer(state, { type: 'pickBuyer', personId: 'person-1', name: 'ABC Recycling' });

@@ -42,7 +42,10 @@ export type DailyFigures = {
   date: LocalDateKey;
   sales: number;
   purchases: number;
+  /** Sell price minus the buy-price cost on that day's sales. */
   profit: number;
+  /** Supplier price minus buy price on that day's purchases. */
+  buyProfit: number;
   expenses: number;
 };
 
@@ -51,7 +54,8 @@ export type TrendBucket = {
   label: string;
   sales: number;
   purchases: number;
-  netProfit: number;
+  /** Sale profit plus buy profit, the same as Total profit on Home. */
+  profit: number;
 };
 
 export type ReportData = {
@@ -134,7 +138,7 @@ export function buildTrend(range: DateRange, daily: DailyFigures[], granularity:
   for (let date = range.from; date <= range.to; date = addDays(date, 1)) {
     const key = bucketKeyFor(date, granularity);
     if (!buckets.has(key)) {
-      buckets.set(key, { key, label: formatDateLabel(key), sales: 0, purchases: 0, netProfit: 0 });
+      buckets.set(key, { key, label: formatDateLabel(key), sales: 0, purchases: 0, profit: 0 });
     }
   }
 
@@ -143,7 +147,7 @@ export function buildTrend(range: DateRange, daily: DailyFigures[], granularity:
     if (bucket) {
       bucket.sales += day.sales;
       bucket.purchases += day.purchases;
-      bucket.netProfit += day.profit - day.expenses;
+      bucket.profit += day.profit + day.buyProfit;
     }
   }
 

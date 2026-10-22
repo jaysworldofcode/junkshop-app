@@ -1,9 +1,12 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
+import { SALE_NUMBER_PREFIX } from '@/constants/sale';
 import type { TicketStatus } from '@/constants/transaction';
 import { runInTransaction } from '@/db/runInTransaction';
+import type { LocalDateKey } from '@/domain/localDate';
 import type { TicketPerson } from '@/domain/person';
 import { formatSaleNumber, type NewSale, type SavedSale } from '@/domain/sale';
+import { nextTicketSequence, ticketNumberStem } from '@/domain/ticketNumber';
 
 export async function saveSale(database: SQLiteDatabase, { sale, items }: NewSale): Promise<SavedSale> {
   let saleNumber = '';
@@ -93,11 +96,26 @@ export async function setSaleStatus(
   ]);
 }
 
-async function nextSaleNumber(database: SQLiteDatabase, saleDate: string): Promise<string> {
-  const row = await database.getFirstAsync<{ sale_count: number }>(
-    'SELECT COUNT(*) AS sale_count FROM sales WHERE sale_date = ?',
-    [saleDate]
-  );
+export async function updateSaleDate(
+  database: SQLiteDatabase,
+  id: string,
+  saleDate: LocalDateKey,
+  timestamp: string
+): Promise<void> {
+  await database.runAsync('UPDATE sales SET sale_date = ?, updated_at = ? WHERE id = ?', [saleDate, timestamp, id]);
+}
 
-  return formatSaleNumber(saleDate, (row?.sale_count ?? 0) + 1);
+async function nextSaleNumber(database: SQLiteDatabase, saleDate: string): Promise<string> {
+  const stem = ticketNumberStem(SALE_NUMBER_PREFIX, saleDate);
+  const [used, counted] = await Promise.all([
+    database.getFirstAsync<{ highest: number | null }>(
+      'SELECT MAX(CAST(substr(sale_number, ?) AS INTEGER)) AS highest FROM sales WHERE sale_number LIKE ?',
+      [stem.length + 1, `${stem}%`]
+    ),
+    database.getFirstAsync<{ sale_count: number }>('SELECT COUNT(*) AS sale_count FROM sales WHERE sale_date = ?', [
+      saleDate,
+    ]),
+  ]);
+
+  return formatSaleNumber(saleDate, nextTicketSequence(used?.highest ?? null, counted?.sale_count ?? 0));
 }

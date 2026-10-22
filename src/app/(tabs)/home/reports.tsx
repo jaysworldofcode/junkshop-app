@@ -6,6 +6,7 @@ import { DateRangeFilter } from '@/components/DateRangeFilter';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { Screen } from '@/components/Screen';
 import { SectionCard } from '@/components/SectionCard';
+import { TrendLineChart } from '@/components/TrendLineChart';
 import type { DateRangePreset } from '@/constants/dateRange';
 import { EXPENSE_CATEGORY_LABELS } from '@/constants/expense';
 import { UNKNOWN_PERSON_NAME } from '@/constants/purchase';
@@ -81,7 +82,6 @@ function ReportBody({ report, today }: { report: ReportData; today: string }) {
   const insights = buildInsights(report);
   const granularity = trendGranularityFor(report.range);
   const trend = buildTrend(report.range, report.daily, granularity);
-  const trendMax = Math.max(1, ...trend.map((bucket) => Math.max(bucket.sales, bucket.purchases)));
   const ranked = rankByProfit(report.materials);
   const boughtOnly = report.materials.filter((material) => material.quantitySold === 0);
   const { current, previous } = report;
@@ -105,23 +105,15 @@ function ReportBody({ report, today }: { report: ReportData; today: string }) {
         <ComparisonRow label="Net profit" current={current.netProfit} previous={previous.netProfit} emphasized />
       </SectionCard>
 
-      <SectionCard title={`Trend · ${TREND_GRANULARITY_LABELS[granularity]}`}>
-        <View style={styles.legend}>
-          <LegendDot color={colors.primary} label="Sales" />
-          <LegendDot color={colors.warning} label="Purchases" />
-        </View>
-        {trend.map((bucket) => (
-          <View key={bucket.key} style={styles.trendRow}>
-            <View style={styles.trendHeader}>
-              <Text style={[styles.rowTitle, { color: colors.text }]}>{bucket.label}</Text>
-              <Text style={[styles.caption, { color: bucket.netProfit < 0 ? colors.danger : colors.muted }]}>
-                Net {formatPeso(bucket.netProfit)}
-              </Text>
-            </View>
-            <Bar value={bucket.sales} max={trendMax} color={colors.primary} />
-            <Bar value={bucket.purchases} max={trendMax} color={colors.warning} />
-          </View>
-        ))}
+      <SectionCard
+        title={`Buy, profit, and sell · ${TREND_GRANULARITY_LABELS[granularity]}`}
+        description="Buy is what you paid, Profit is sale profit plus buy profit, the same as Total profit on Home, and Sell is what you sold. Tap a button to show or hide its line."
+      >
+        <TrendLineChart
+          key={`${report.range.from}-${report.range.to}`}
+          buckets={trend}
+          granularity={granularity}
+        />
       </SectionCard>
 
       <SectionCard
@@ -281,17 +273,6 @@ function Bar({ value, max, color }: { value: number; max: number; color: string 
   );
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
-  const { colors } = useAppTheme();
-
-  return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
-      <Text style={[styles.caption, { color: colors.muted }]}>{label}</Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   content: {
     padding: SPACE_MD,
@@ -337,20 +318,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: FONT_SIZE_BODY - 1,
     lineHeight: FONT_SIZE_BODY + 6,
-  },
-  legend: {
-    flexDirection: 'row',
-    gap: SPACE_MD,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: SPACE_XS,
-  },
-  legendDot: {
-    width: TREND_BAR_HEIGHT,
-    height: TREND_BAR_HEIGHT,
-    borderRadius: TREND_BAR_HEIGHT / 2,
   },
   trendRow: {
     gap: SPACE_XS,

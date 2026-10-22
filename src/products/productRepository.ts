@@ -52,17 +52,18 @@ export function listProducts(database: SQLiteDatabase, search: string): Promise<
 /** Active products, most often bought first, so the counter reaches common materials fastest. */
 export function listActiveProductsByUsage(database: SQLiteDatabase): Promise<ProductWithUsage[]> {
   return database
-    .getAllAsync<MaterialRow & { purchase_count: number }>(
+    .getAllAsync<MaterialRow & { purchase_count: number; sale_count: number }>(
       `SELECT m.id, m.name, m.code, m.category, m.unit, m.pricing_mode, m.is_active, m.created_at, m.updated_at,
-              COUNT(pi.id) AS purchase_count
+              (SELECT COUNT(*) FROM purchase_items pi WHERE pi.material_id = m.id) AS purchase_count,
+              (SELECT COUNT(*) FROM sale_items si WHERE si.material_id = m.id) AS sale_count
        FROM materials m
-       LEFT JOIN purchase_items pi ON pi.material_id = m.id
        WHERE m.is_active = ?
-       GROUP BY m.id
        ORDER BY purchase_count DESC, m.name COLLATE NOCASE ASC`,
       [SQLITE_ACTIVE]
     )
-    .then((rows) => rows.map((row) => ({ ...mapRow(row), purchaseCount: row.purchase_count })));
+    .then((rows) =>
+      rows.map((row) => ({ ...mapRow(row), purchaseCount: row.purchase_count, saleCount: row.sale_count }))
+    );
 }
 
 export async function getProduct(database: SQLiteDatabase, id: string): Promise<Product | null> {

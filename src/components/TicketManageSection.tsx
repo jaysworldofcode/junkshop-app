@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal, StyleSheet, Text, View } from 'react-native';
 
+import { DateField } from '@/components/DateField';
 import { DetailRow } from '@/components/DetailRow';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { PersonNameField } from '@/components/PersonNameField';
@@ -18,6 +19,7 @@ import {
 } from '@/constants/layout';
 import type { TicketRole } from '@/constants/person';
 import type { TicketStatus, TransactionKind } from '@/constants/transaction';
+import { formatDateLabel, type LocalDateKey } from '@/domain/localDate';
 import { ticketPersonError, toTicketPerson, type Person, type TicketPerson } from '@/domain/person';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -93,8 +95,10 @@ type TicketManageSectionProps = {
   ticketKind: TransactionKind;
   personId: string | null;
   personName: string;
+  ticketDate: LocalDateKey;
   status: TicketStatus;
   onSavePerson: (person: TicketPerson) => Promise<void>;
+  onSaveDate: (date: LocalDateKey) => Promise<void>;
   onSetStatus: (status: TicketStatus) => Promise<void>;
 };
 
@@ -103,8 +107,10 @@ export function TicketManageSection({
   ticketKind,
   personId,
   personName,
+  ticketDate,
   status,
   onSavePerson,
+  onSaveDate,
   onSetStatus,
 }: TicketManageSectionProps) {
   const { colors } = useAppTheme();
@@ -113,6 +119,7 @@ export function TicketManageSection({
   const isCancelled = status === 'cancelled';
 
   const [draft, setDraft] = useState<{ name: string; personId: string | null } | null>(null);
+  const [draftDate, setDraftDate] = useState<LocalDateKey | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +157,20 @@ export function TicketManageSection({
   const onPickPerson = (person: Person) => {
     setDraft({ name: person.name, personId: person.id });
     void persistPerson({ personId: person.id, name: person.name });
+  };
+
+  const persistDate = async (date: LocalDateKey) => {
+    setIsBusy(true);
+    setError(null);
+    try {
+      await onSaveDate(date);
+      setDraftDate(null);
+      setNotice({ title: 'Date updated', body: `Home and Reports now count this ticket on ${formatDateLabel(date)}.` });
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : 'Could not change the date on this ticket.');
+    } finally {
+      setIsBusy(false);
+    }
   };
 
   const persistStatus = async (nextStatus: TicketStatus, title: string, body: string) => {
@@ -229,6 +250,56 @@ export function TicketManageSection({
                 setNotice(null);
                 setError(null);
                 setDraft({ name: personName, personId });
+              }}
+              disabled={isBusy}
+            />
+          </>
+        )}
+      </SectionCard>
+
+      <SectionCard
+        title="Date"
+        description={draftDate !== null ? 'The ticket number stays the same, so it still matches the printed receipt.' : undefined}
+      >
+        {draftDate !== null ? (
+          <>
+            <DateField label="Ticket date" value={draftDate} onChange={setDraftDate} disabled={isBusy} />
+            <View style={styles.actions}>
+              <View style={styles.action}>
+                <PrimaryButton
+                  label="Back"
+                  variant="outline"
+                  onPress={() => {
+                    setDraftDate(null);
+                    setError(null);
+                  }}
+                  disabled={isBusy}
+                />
+              </View>
+              <View style={styles.action}>
+                <PrimaryButton
+                  label="Save date"
+                  icon={{ ios: 'checkmark', android: 'check', web: 'check' }}
+                  onPress={() => {
+                    void persistDate(draftDate);
+                  }}
+                  disabled={draftDate === ticketDate}
+                  isLoading={isBusy}
+                />
+              </View>
+            </View>
+          </>
+        ) : (
+          <>
+            <DetailRow label="Date" value={formatDateLabel(ticketDate)} />
+            <PrimaryButton
+              label="Change date"
+              variant="outline"
+              icon={{ ios: 'calendar', android: 'calendar_month', web: 'calendar_month' }}
+              onPress={() => {
+                setNotice(null);
+                setError(null);
+                setDraftDate(ticketDate);
               }}
               disabled={isBusy}
             />

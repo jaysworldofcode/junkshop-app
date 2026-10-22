@@ -15,13 +15,13 @@ import { TicketManageSection } from '@/components/TicketManageSection';
 import { FONT_SIZE_CAPTION, FONT_SIZE_TITLE, SPACE_XS, SPACE_SM, SPACE_MD, SPACE_LG } from '@/constants/layout';
 import { PAYMENT_METHOD_LABELS } from '@/constants/payment';
 import type { TicketStatus } from '@/constants/transaction';
-import { formatDateLabel } from '@/domain/localDate';
+import type { LocalDateKey } from '@/domain/localDate';
 import { formatPeso } from '@/domain/money';
 import type { TicketPerson } from '@/domain/person';
 import { sumExpected, type PurchaseDetail } from '@/domain/purchaseHistory';
 import { nowIso } from '@/domain/timestamps';
 import { paymentBadge } from '@/purchases/purchaseBadges';
-import { setPurchaseStatus, updatePurchaseSeller } from '@/purchases/purchaseRepository';
+import { setPurchaseStatus, updatePurchaseDate, updatePurchaseSeller } from '@/purchases/purchaseRepository';
 import { usePurchaseDetail } from '@/purchases/usePurchaseDetail';
 import { useAppTheme } from '@/theme/useAppTheme';
 
@@ -84,6 +84,14 @@ function PurchaseDetailView({
     [database, onReload, purchase.id]
   );
 
+  const onSaveDate = useCallback(
+    async (date: LocalDateKey) => {
+      await updatePurchaseDate(database, purchase.id, date, nowIso());
+      await onReload();
+    },
+    [database, onReload, purchase.id]
+  );
+
   const onSetStatus = useCallback(
     async (status: TicketStatus) => {
       await setPurchaseStatus(database, purchase.id, status, nowIso());
@@ -115,7 +123,6 @@ function PurchaseDetailView({
 
         <SectionCard title="Ticket">
           <DetailRow label="Purchase number" value={purchase.purchaseNumber} />
-          <DetailRow label="Date" value={formatDateLabel(purchase.purchaseDate)} />
           <DetailRow
             label="Payment"
             value={[payment.label, purchase.paymentMethod ? PAYMENT_METHOD_LABELS[purchase.paymentMethod] : null]
@@ -130,8 +137,10 @@ function PurchaseDetailView({
           ticketKind="purchase"
           personId={purchase.sellerId}
           personName={purchase.sellerName}
+          ticketDate={purchase.purchaseDate}
           status={purchase.status}
           onSavePerson={onSavePerson}
+          onSaveDate={onSaveDate}
           onSetStatus={onSetStatus}
         />
 

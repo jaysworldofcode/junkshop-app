@@ -3,15 +3,18 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import type { PaymentMethod, PaymentStatus } from '@/constants/payment';
 import { parsePricingMode } from '@/constants/product';
 import {
+  PURCHASE_NUMBER_PREFIX,
   UNKNOWN_PERSON_NAME,
   UNSOLD_PURCHASE_ITEM_STATUSES,
   type PurchaseItemStatus,
 } from '@/constants/purchase';
 import { parseTicketStatus, type TicketStatus } from '@/constants/transaction';
 import { runInTransaction } from '@/db/runInTransaction';
+import type { LocalDateKey } from '@/domain/localDate';
 import type { TicketPerson } from '@/domain/person';
 import { formatPurchaseNumber, type NewPurchase, type SavedPurchase } from '@/domain/purchase';
 import type { PurchaseDetail, PurchaseListEntry } from '@/domain/purchaseHistory';
+import { nextTicketSequence, ticketNumberStem } from '@/domain/ticketNumber';
 
 export async function savePurchase(database: SQLiteDatabase, { purchase, items }: NewPurchase): Promise<SavedPurchase> {
   let purchaseNumber = '';
@@ -245,11 +248,31 @@ export async function setPurchaseStatus(
   ]);
 }
 
-async function nextPurchaseNumber(database: SQLiteDatabase, purchaseDate: string): Promise<string> {
-  const row = await database.getFirstAsync<{ purchase_count: number }>(
-    'SELECT COUNT(*) AS purchase_count FROM purchases WHERE purchase_date = ?',
-    [purchaseDate]
-  );
+export async function updatePurchaseDate(
+  database: SQLiteDatabase,
+  id: string,
+  purchaseDate: LocalDateKey,
+  timestamp: string
+): Promise<void> {
+  await database.runAsync('UPDATE purchases SET purchase_date = ?, updated_at = ? WHERE id = ?', [
+    purchaseDate,
+    timestamp,
+    id,
+  ]);
+}
 
-  return formatPurchaseNumber(purchaseDate, (row?.purchase_count ?? 0) + 1);
+async function nextPurchaseNumber(database: SQLiteDatabase, purchaseDate: string): Promise<string> {
+  const stem = ticketNumberStem(PURCHASE_NUMBER_PREFIX, purchaseDate);
+  const [used, counted] = await Promise.all([
+    database.getFirstAsync<{ highest: number | null }>(
+      'SELECT MAX(CAST(substr(purchase_number, ?) AS INTEGER)) AS highest FROM purchases WHERE purchase_number LIKE ?',
+      [stem.length + 1, `${stem}%`]
+    ),
+    database.getFirstAsync<{ purchase_count: number }>(
+      'SELECT COUNT(*) AS purchase_count FROM purchases WHERE purchase_date = ?',
+      [purchaseDate]
+    ),
+  ]);
+
+  return formatPurchaseNumber(purchaseDate, nextTicketSequence(used?.highest ?? null, counted?.purchase_count ?? 0));
 }
