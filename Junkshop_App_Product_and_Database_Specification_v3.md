@@ -848,5 +848,5 @@ Database: `attachments`.
 
 
 How to build:
-
+ 
 C:\Projects\junkshop-app\android>.\gradlew.bat assembleRelease
